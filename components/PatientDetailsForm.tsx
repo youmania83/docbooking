@@ -111,7 +111,7 @@ export default function PatientDetailsForm({
             value={formData.name}
             onChange={handleChange}
             placeholder="Enter your full name"
-            className={`w-full px-4 py-3 rounded-lg border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            className={`w-full px-4 py-3 rounded-lg border-2 text-gray-900 placeholder-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               errors.name
                 ? "border-red-500 focus:border-red-500"
                 : "border-gray-200 hover:border-gray-300"
@@ -140,7 +140,7 @@ export default function PatientDetailsForm({
             placeholder="Enter your age"
             min="1"
             max="150"
-            className={`w-full px-4 py-3 rounded-lg border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            className={`w-full px-4 py-3 rounded-lg border-2 text-gray-900 placeholder-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               errors.age
                 ? "border-red-500 focus:border-red-500"
                 : "border-gray-200 hover:border-gray-300"
@@ -165,14 +165,14 @@ export default function PatientDetailsForm({
             name="gender"
             value={formData.gender}
             onChange={handleChange}
-            className={`w-full px-4 py-3 rounded-lg border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            className={`w-full px-4 py-3 rounded-lg border-2 text-gray-900 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               errors.gender
                 ? "border-red-500 focus:border-red-500"
                 : "border-gray-200 hover:border-gray-300"
             }`}
             disabled={isLoading}
           >
-            <option value="">Select Gender</option>
+            <option value="" className="text-gray-400">Select Gender</option>
             <option value="Male">Male</option>
             <option value="Female">Female</option>
             <option value="Other">Other</option>
@@ -200,7 +200,7 @@ export default function PatientDetailsForm({
               onChange={handleChange}
               placeholder="Enter 10-digit number"
               maxLength={10}
-              className={`flex-1 px-4 py-3 rounded-lg border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`flex-1 px-4 py-3 rounded-lg border-2 text-gray-900 placeholder-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.mobileNumber
                   ? "border-red-500 focus:border-red-500"
                   : "border-gray-200 hover:border-gray-300"
