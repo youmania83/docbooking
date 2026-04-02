@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Phone, User, Calendar, Stethoscope } from "lucide-react";
+import { Check, Phone, User, Calendar, Stethoscope, X, Edit } from "lucide-react";
 import Link from "next/link";
 import { PatientDetails } from "./PatientDetailsForm";
 import { Doctor } from "@/lib/data";
@@ -12,6 +12,7 @@ interface BookingConfirmationModalProps {
   patientDetails: PatientDetails;
   onClose: () => void;
   onNewBooking: () => void;
+  onEdit?: () => void;
 }
 
 export default function BookingConfirmationModal({
@@ -21,6 +22,7 @@ export default function BookingConfirmationModal({
   patientDetails,
   onClose,
   onNewBooking,
+  onEdit,
 }: BookingConfirmationModalProps) {
   if (!isOpen) return null;
 
@@ -29,7 +31,16 @@ export default function BookingConfirmationModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in relative">
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full p-2 transition-colors z-10"
+          aria-label="Close"
+        >
+          <X size={24} />
+        </button>
+
         {/* Success Header */}
         <div className="bg-gradient-to-r from-green-500 to-green-600 px-6 py-8 text-center">
           <div className="flex justify-center mb-4">
@@ -125,12 +136,22 @@ export default function BookingConfirmationModal({
           <div className="space-y-3 pt-4">
             <button
               onClick={onClose}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
             >
-              Finish
+              <Check size={20} />
+              Done
             </button>
-            <Link href="/doctors">
-              <button className="w-full border-2 border-blue-600 text-blue-600 hover:bg-blue-50 font-semibold py-3 px-6 rounded-lg transition-colors duration-200">
+            {onEdit && (
+              <button
+                onClick={onEdit}
+                className="w-full border-2 border-blue-600 text-blue-600 hover:bg-blue-50 font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+              >
+                <Edit size={20} />
+                Edit Details
+              </button>
+            )}
+            <Link href="/doctors" className="w-full">
+              <button className="w-full border-2 border-gray-300 text-gray-700 hover:bg-gray-50 font-semibold py-3 px-6 rounded-lg transition-colors duration-200">
                 Book Another Appointment
               </button>
             </Link>
