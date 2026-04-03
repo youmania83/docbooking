@@ -31,10 +31,23 @@ export default function DoctorsPage() {
     const fetchDoctors = async () => {
       try {
         setLoading(true);
+        setError(null);
+        
+        console.log("🔄 Fetching doctors from /api/doctors...");
         const response = await fetch("/api/doctors");
-        const data = await response.json();
 
-        if (data.success) {
+        console.log(`📊 API Response status: ${response.status}`);
+
+        if (!response.ok) {
+          console.error(`❌ API returned status ${response.status}`);
+          throw new Error(`HTTP Error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log(`✓ API Response:`, data);
+
+        if (data.success && Array.isArray(data.data)) {
+          console.log(`✓ Found ${data.data.length} doctors`);
           setDoctors(data.data);
           setFilteredDoctors(data.data);
 
@@ -43,13 +56,17 @@ export default function DoctorsPage() {
             ...new Set(data.data.map((doc: Doctor) => doc.specialty)),
           ];
           setSpecialties(uniqueSpecialties as string[]);
+          console.log(`✓ Extracted specialties:`, uniqueSpecialties);
         } else {
-          setError(data.message || "Failed to load doctors");
+          const errorMsg = data.message || "No doctors found or invalid response";
+          console.error(`⚠️ ${errorMsg}`);
+          setError(errorMsg);
         }
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "An error occurred"
-        );
+        const errorMsg =
+          err instanceof Error ? err.message : "An unexpected error occurred";
+        console.error(`❌ Error fetching doctors:`, err);
+        setError(errorMsg);
       } finally {
         setLoading(false);
       }
@@ -89,9 +106,20 @@ export default function DoctorsPage() {
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
-            <AlertCircle className="text-red-600" />
-            <p className="text-red-800">{error}</p>
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="text-red-600 flex-shrink-0 mt-1" size={20} />
+              <div>
+                <h3 className="font-semibold text-red-900 mb-1">Error Loading Doctors</h3>
+                <p className="text-red-800 text-sm">{error}</p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="mt-3 text-red-700 hover:text-red-900 text-sm font-medium underline"
+                >
+                  Try Again
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -148,13 +176,28 @@ export default function DoctorsPage() {
         )}
 
         {/* Doctor Grid */}
-        {!loading && (
+        {!loading && !error && (
           <>
-            {filteredDoctors.length > 0 ? (
+            {doctors.length === 0 ? (
+              <div className="text-center py-12 bg-blue-50 border border-blue-200 rounded-lg">
+                <AlertCircle className="text-blue-600 mx-auto mb-3" size={40} />
+                <h3 className="text-lg font-semibold text-blue-900 mb-2">No Doctors Available</h3>
+                <p className="text-blue-700 mb-4">
+                  There are currently no doctors in the system.
+                </p>
+                <a
+                  href="/admin"
+                  className="inline-block text-blue-600 hover:text-blue-700 font-medium underline"
+                >
+                  Add doctors from admin panel →
+                </a>
+              </div>
+            ) : filteredDoctors.length > 0 ? (
               <>
-                <p className="text-gray-600 mb-6">
-                  Showing {filteredDoctors.length} doctor
-                  {filteredDoctors.length !== 1 ? "s" : ""}
+                <p className="text-gray-600 mb-6 text-sm">
+                  Showing {filteredDoctors.length} doctor{filteredDoctors.length !== 1 ? "s" : ""}
+                  {searchTerm && ` matching "${searchTerm}"`}
+                  {specialtyFilter && ` in ${specialtyFilter}`}
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   {filteredDoctors.map((doctor) => (
@@ -172,11 +215,23 @@ export default function DoctorsPage() {
                 </div>
               </>
             ) : (
-              <div className="text-center py-12">
-                <p className="text-lg text-gray-600">No doctors found</p>
-                <p className="text-gray-500 mt-2">
-                  Try adjusting your search criteria
+              <div className="text-center py-12 bg-amber-50 border border-amber-200 rounded-lg">
+                <AlertCircle className="text-amber-600 mx-auto mb-3" size={40} />
+                <h3 className="text-lg font-semibold text-amber-900 mb-2">No Results Found</h3>
+                <p className="text-amber-700">
+                  {searchTerm && `No doctors match "${searchTerm}"`}
+                  {!searchTerm && specialtyFilter && `No doctors found in ${specialtyFilter}`}
+                  {!searchTerm && !specialtyFilter && "No doctors found"}
                 </p>
+                <button
+                  onClick={() => {
+                    setSearchTerm("");
+                    setSpecialtyFilter("");
+                  }}
+                  className="mt-4 text-amber-700 hover:text-amber-900 font-medium underline text-sm"
+                >
+                  Clear filters
+                </button>
               </div>
             )}
           </>
