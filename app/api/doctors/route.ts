@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
 
     console.log(`✓ Found ${doctors.length} doctor(s)`);
 
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         success: true,
         data: doctors,
@@ -59,6 +59,13 @@ export async function GET(request: NextRequest) {
       },
       { status: 200 }
     );
+
+    // Add cache headers for performance
+    // Cache for 60 seconds for search queries, 120 seconds for full list
+    const cacheTime = query && Object.keys(query).length > 0 ? 60 : 120;
+    response.headers.set("Cache-Control", `public, max-age=${cacheTime}, s-maxage=${cacheTime}`);
+    
+    return response;
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";

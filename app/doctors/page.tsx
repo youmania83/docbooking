@@ -34,7 +34,14 @@ export default function DoctorsPage() {
         setError(null);
         
         console.log("🔄 Fetching doctors from /api/doctors...");
-        const response = await fetch("/api/doctors");
+        const response = await fetch("/api/doctors", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          // Add cache control for faster subsequent requests
+          next: { revalidate: 60 }, // Revalidate cache every 60 seconds
+        });
 
         console.log(`📊 API Response status: ${response.status}`);
 
