@@ -143,7 +143,7 @@ In terminal: `Ctrl + C`
 - **Cluster**: docbooking.1ejvbod
 - **Database**: docbooking
 - **Collections**: doctors
-- **Auth**: admin / admin
+- **Auth**: admin / 
 
 **To view in MongoDB Atlas:**
 1. Go to https://cloud.mongodb.com
