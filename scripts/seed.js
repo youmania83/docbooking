@@ -102,6 +102,18 @@ const testDoctors = [
     opdFees: 350,
     slots: ["10:00 AM", "2:00 PM", "4:30 PM"],
   },
+  {
+    name: "Dr. Singla",
+    qualification: "BDS, MDS",
+    experience: "8 years",
+    specialty: "Dentist",
+    address: "Singla Dental Clinic, Main Road, Panipat",
+    googleLocation:
+      "https://maps.google.com/?q=singla+dental+clinic+panipat",
+    phone: "+91 9876543216",
+    opdFees: 500,
+    slots: ["9:00 AM", "10:30 AM", "2:00 PM", "3:30 PM"],
+  },
 ];
 
 // Seed database
