@@ -1,28 +1,77 @@
 "use client";
 
-import { getDoctorById } from "@/lib/data";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, Calendar, MapPin, Award } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Award, Loader, AlertCircle } from "lucide-react";
 import PatientDetailsForm, { PatientDetails } from "@/components/PatientDetailsForm";
 import BookingConfirmationModal from "@/components/BookingConfirmationModal";
 
+interface Doctor {
+  _id: string;
+  name: string;
+  specialty: string;
+  opdFees: number;
+  slots: string[];
+  experience: string;
+  address: string;
+  phone: string;
+  googleLocation: string;
+  qualification: string;
+}
+
 export default function DoctorDetailPage() {
   const params = useParams();
-  const doctor = getDoctorById(params.id as string);
+  const [doctor, setDoctor] = useState<Doctor | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [bookingStep, setBookingStep] = useState<"slot-selection" | "patient-details">("slot-selection");
   const [patientDetails, setPatientDetails] = useState<PatientDetails | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
 
-  if (!doctor) {
+  // Fetch doctor data from API
+  useEffect(() => {
+    const fetchDoctor = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/doctors?id=${params.id}`);
+        const data = await response.json();
+
+        if (data.success && data.data.length > 0) {
+          setDoctor(data.data[0]);
+        } else {
+          setError("Doctor not found");
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load doctor");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDoctor();
+  }, [params.id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-12 flex items-center justify-center">
+        <div className="flex items-center gap-3">
+          <Loader className="animate-spin text-blue-600" size={32} />
+          <span className="text-gray-600">Loading doctor information...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!doctor || error) {
     return (
       <div className="min-h-screen bg-gray-50 py-12">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
+            <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-gray-900 mb-4">
-              Doctor not found
+              {error || "Doctor not found"}
             </h1>
             <Link href="/doctors">
               <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg">
@@ -95,22 +144,42 @@ export default function DoctorDetailPage() {
                     <p className="text-xs text-gray-500 uppercase">
                       Experience
                     </p>
-                    <p className="text-gray-900 font-semibold">15+ Years</p>
+                    <p className="text-gray-900 font-semibold">{doctor.experience}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <MapPin size={20} className="text-blue-600" />
                   <div>
-                    <p className="text-xs text-gray-500 uppercase">Location</p>
-                    <p className="text-gray-900 font-semibold">Panipat, India</p>
+                    <p className="text-xs text-gray-500 uppercase">Qualification</p>
+                    <p className="text-gray-900 font-semibold text-sm">{doctor.qualification}</p>
                   </div>
                 </div>
               </div>
 
               <p className="text-3xl font-bold text-gray-900 text-center mb-2">
-                ₹{doctor.fee}
+                ₹{doctor.opdFees}
               </p>
               <p className="text-sm text-gray-500 text-center">per consultation</p>
+              
+              {/* Details */}
+              <div className="mt-6 pt-6 border-t border-gray-200 space-y-3">
+                <div>
+                  <p className="text-xs text-gray-500 uppercase mb-1">Address</p>
+                  <p className="text-sm text-gray-700">{doctor.address}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase mb-1">Phone</p>
+                  <p className="text-sm text-gray-700">{doctor.phone}</p>
+                </div>
+                <a
+                  href={doctor.googleLocation}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block px-4 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-100 transition"
+                >
+                  View on Map
+                </a>
+              </div>
             </div>
           </div>
 
@@ -185,7 +254,7 @@ export default function DoctorDetailPage() {
                     <div className="border-t border-gray-200 pt-3 flex justify-between">
                       <span className="text-gray-900 font-semibold">Fee</span>
                       <span className="text-xl font-bold text-blue-600">
-                        ₹{doctor.fee}
+                        ₹{doctor.opdFees}
                       </span>
                     </div>
                   </div>
@@ -243,7 +312,7 @@ export default function DoctorDetailPage() {
                     </div>
                     <div>
                       <p className="text-xs text-gray-600 uppercase">Fee</p>
-                      <p className="text-blue-600 font-bold">₹{doctor.fee}</p>
+                      <p className="text-blue-600 font-bold">₹{doctor.opdFees}</p>
                     </div>
                   </div>
                 </div>

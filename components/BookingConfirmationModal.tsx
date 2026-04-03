@@ -3,7 +3,19 @@
 import { Check, Phone, User, Calendar, Stethoscope, X, Edit } from "lucide-react";
 import Link from "next/link";
 import { PatientDetails } from "./PatientDetailsForm";
-import { Doctor } from "@/lib/data";
+
+interface Doctor {
+  _id: string;
+  name: string;
+  specialty: string;
+  opdFees: number;
+  slots: string[];
+  experience: string;
+  address: string;
+  phone: string;
+  googleLocation: string;
+  qualification: string;
+}
 
 interface BookingConfirmationModalProps {
   isOpen: boolean;
@@ -120,7 +132,7 @@ export default function BookingConfirmationModal({
               </div>
               <div>
                 <p className="text-xs text-gray-500 uppercase">Consultation Fee</p>
-                <p className="text-blue-600 font-bold text-lg">₹{doctor.fee}</p>
+                <p className="text-blue-600 font-bold text-lg">₹{doctor.opdFees}</p>
               </div>
             </div>
           </div>
