@@ -16,6 +16,9 @@ export const metadata: Metadata = {
   title: "DocBooking.in - Book Doctor Appointments in Panipat",
   description:
     "Skip OPD Queues in Panipat - Book doctor appointments instantly and avoid long waiting times",
+  icons: {
+    icon: "/logos/favicon.svg",
+  },
 };
 
 export default function RootLayout({
@@ -30,12 +33,13 @@ export default function RootLayout({
     >
       <body className="min-h-screen flex flex-col bg-gray-50">
         <header className="bg-white shadow-sm sticky top-0 z-40">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">
-                D
-              </div>
-              <h1 className="text-xl font-bold text-gray-900">DocBooking.in</h1>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+            <div className="flex items-center">
+              <img
+                src="/logos/docbooking-logo-horizontal.svg"
+                alt="DocBooking"
+                className="h-10 w-auto"
+              />
             </div>
             <p className="text-sm text-gray-600">Panipat, India</p>
           </div>

@@ -1,10 +1,17 @@
 import DoctorCard from "@/components/DoctorCard";
 import { Search, AlertCircle } from "lucide-react";
+import { Metadata } from "next";
 import { connectDB } from "@/lib/mongodb";
 import Doctor from "@/models/Doctor";
 
 // ISR: Revalidate cached data every 60 seconds
 export const revalidate = 60;
+
+export const metadata: Metadata = {
+  title: "Find Your Doctor | DocBooking",
+  description: "Browse our network of verified healthcare professionals in Panipat. Search and book appointments with top doctors.",
+  keywords: ["doctors", "panipat", "healthcare", "appointments", "medical"],
+};
 
 interface DoctorData {
   _id: string;
@@ -36,14 +43,11 @@ export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
   try {
     // Connect to database
     await connectDB();
-    console.log("✓ Connected to MongoDB for doctors page (server component)");
 
     // Fetch all doctors from database using lean() for better performance
     const allDoctors = await Doctor.find()
       .lean()
       .exec();
-
-    console.log(`✓ Fetched ${allDoctors.length} doctors from database`);
 
     // Convert MongoDB documents to our interface
     doctors = allDoctors.map((doc: any) => ({
@@ -66,27 +70,19 @@ export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
       filteredDoctors = filteredDoctors.filter((doc) =>
         doc.name.toLowerCase().includes(searchTerm)
       );
-      console.log(
-        `✓ Filtered ${filteredDoctors.length} doctors by search: "${searchTerm}"`
-      );
     }
 
     if (specialtyFilter) {
       filteredDoctors = filteredDoctors.filter(
         (doc) => doc.specialty === specialtyFilter
       );
-      console.log(
-        `✓ Filtered ${filteredDoctors.length} doctors by specialty: "${specialtyFilter}"`
-      );
     }
 
     // Extract unique specialties sorted alphabetically
     specialties = [...new Set(doctors.map((doc) => doc.specialty))].sort();
-    console.log(`✓ Extracted ${specialties.length} specialties`);
   } catch (err) {
     const errorMessage =
       err instanceof Error ? err.message : "Unknown error occurred";
-    console.error("❌ Error fetching doctors:", errorMessage);
     error = errorMessage;
   }
 

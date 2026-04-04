@@ -10,6 +10,14 @@ export default function Home() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-32">
         <div className="grid md:grid-cols-2 gap-12 items-center">
           <div className="space-y-8">
+            <div className="flex items-center gap-4 mb-6">
+              <img
+                src="/logos/docbooking-logo-primary.svg"
+                alt="DocBooking"
+                className="h-16 w-auto"
+              />
+            </div>
+            
             <div>
               <h1 className="text-5xl md:text-6xl font-bold text-gray-900 leading-tight mb-4">
                 Skip OPD Queues in Panipat
@@ -84,7 +92,13 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid md:grid-cols-3 gap-8 mb-8">
             <div>
-              <h4 className="font-bold text-lg mb-4">DocBooking.in</h4>
+              <div className="mb-4">
+                <img
+                  src="/logos/docbooking-logo-dark-bg.svg"
+                  alt="DocBooking"
+                  className="h-12 w-auto"
+                />
+              </div>
               <p className="text-gray-400">
                 Making healthcare accessible for everyone in Panipat
               </p>

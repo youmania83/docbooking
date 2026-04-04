@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 60" width="320" height="60">
+  <rect x="0" y="4" width="52" height="52" rx="10" fill="#2563EB"/>
+  <text x="26" y="38" font-family="Inter,Helvetica Neue,Arial,sans-serif" font-size="30" font-weight="700" fill="#ffffff" text-anchor="middle">D</text>
+  <text x="64" y="36" font-family="Inter,Helvetica Neue,Arial,sans-serif" font-size="26" font-weight="700" letter-spacing="-0.5" fill="#0f172a">DocBooking</text>
+  <text x="218" y="36" font-family="Inter,Helvetica Neue,Arial,sans-serif" font-size="26" font-weight="400" fill="#2563EB">.in</text>
+  <text x="64" y="52" font-family="Inter,Helvetica Neue,Arial,sans-serif" font-size="10" font-weight="400" letter-spacing="1.5" fill="#64748b">BOOK DOCTOR APPOINTMENTS · PANIPAT</text>
+</svg>
