@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Clock, MapPin, Shield } from "lucide-react";
+import { ArrowRight, Clock, MapPin, Shield, CheckCircle2, Zap } from "lucide-react";
 
 export default function Home() {
   return (
@@ -18,6 +18,11 @@ export default function Home() {
               />
             </div>
             
+            <div className="inline-flex items-center gap-2 bg-green-50 border border-green-200 rounded-full px-4 py-2 mb-4">
+              <Zap className="text-green-600" size={18} />
+              <span className="text-sm font-semibold text-green-700">20+ bookings today in Panipat</span>
+            </div>
+            
             <div>
               <h1 className="text-5xl md:text-6xl font-bold text-gray-900 leading-tight mb-4">
                 Skip OPD Queues in Panipat
@@ -30,7 +35,7 @@ export default function Home() {
 
             <Link href="/doctors">
               <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center gap-3 text-lg">
-                Book Appointment
+                Book OPD Slot Now
                 <ArrowRight size={24} />
               </button>
             </Link>
@@ -87,6 +92,66 @@ export default function Home() {
         </div>
       </section>
 
+      {/* How It Works Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold text-gray-900 mb-4">How It Works</h2>
+          <p className="text-xl text-gray-600">Book your appointment in 3 simple steps</p>
+        </div>
+        
+        <div className="grid md:grid-cols-3 gap-8">
+          {/* Step 1 */}
+          <div className="relative">
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg mb-4">
+              1
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-3">Select Doctor</h3>
+            <p className="text-gray-600 mb-4">
+              Browse verified doctors in Panipat by specialty, experience, and location
+            </p>
+            <div className="absolute top-12 left-20 w-16 h-1 bg-gradient-to-r from-blue-600 to-transparent hidden md:block"></div>
+          </div>
+
+          {/* Step 2 */}
+          <div className="relative md:mt-0">
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg mb-4">
+              2
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-3">Choose Slot</h3>
+            <p className="text-gray-600 mb-4">
+              Pick a convenient time that works best for you from available slots
+            </p>
+            <div className="absolute top-12 left-20 w-16 h-1 bg-gradient-to-r from-blue-600 to-transparent hidden md:block"></div>
+          </div>
+
+          {/* Step 3 */}
+          <div className="relative">
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg mb-4">
+              3
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-3">Visit Without Waiting</h3>
+            <p className="text-gray-600 mb-4">
+              Arrive at your appointment time and skip the OPD queue entirely
+            </p>
+          </div>
+        </div>
+
+        {/* Trust Badge */}
+        <div className="mt-16 pt-16 border-t border-gray-200">
+          <div className="flex items-center justify-center gap-3 bg-blue-50 rounded-lg p-6 inline-block w-full text-center">
+            <CheckCircle2 className="text-green-600 flex-shrink-0" size={28} />
+            <div>
+              <p className="text-lg font-semibold text-gray-900">
+                Trusted by local doctors in Panipat
+              </p>
+              <p className="text-sm text-gray-600 mt-1">
+                Join 100+ verified medical professionals who trust DocBooking
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="bg-gray-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -125,7 +190,7 @@ export default function Home() {
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
-            <p>&copy; 2026 DocBooking.in. All rights reserved. Demo Version</p>
+            <p>&copy; 2026 DocBooking.in. All rights reserved.</p>
           </div>
         </div>
       </footer>
