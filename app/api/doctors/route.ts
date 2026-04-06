@@ -1,173 +1,88 @@
-import { connectDB } from "@/lib/mongodb";
-import Doctor from "@/models/Doctor";
+/**
+ * GET /api/doctors
+ * Fetch doctors with optional filtering
+ * 
+ * Query parameters:
+ * - id: Get specific doctor by ID
+ * - specialty: Search by specialty
+ * - name: Search by name
+ */
+
 import { NextRequest, NextResponse } from "next/server";
-import mongoose from "mongoose";
+import {
+  getAllDoctors,
+  getDoctorById,
+  createDoctor,
+} from "@/services/doctorService";
+import { successResponse, errorResponse, createdResponse } from "@/lib/utils/response";
+import { handleError } from "@/lib/utils/errors";
 
 export async function GET(request: NextRequest) {
   try {
-    console.log("📥 GET /api/doctors - Request received");
-
-    // Connect to database
-    console.log("🔗 Connecting to MongoDB...");
-    await connectDB();
-    console.log("✓ MongoDB connected");
-
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
-    const specialty = searchParams.get("specialty");
-    const name = searchParams.get("name");
+    const specialty = searchParams.get("specialty") || undefined;
+    const name = searchParams.get("name") || undefined;
 
-    console.log(`📋 Search params - ID: ${id}, Specialty: ${specialty}, Name: ${name}`);
-
-    let query = {};
+    let result;
 
     // If ID is provided, fetch specific doctor
     if (id) {
-      if (!mongoose.Types.ObjectId.isValid(id)) {
-        console.warn(`⚠️ Invalid ObjectId: ${id}`);
-        return NextResponse.json(
-          {
-            success: false,
-            message: "Invalid doctor ID format",
-          },
-          { status: 400 }
-        );
-      }
-      query = { _id: new mongoose.Types.ObjectId(id) };
+      result = await getDoctorById(id);
+      result = [result]; // Wrap in array for consistency
     } else {
-      // Otherwise apply filters
-      if (specialty) {
-        query = { ...query, specialty: { $regex: specialty, $options: "i" } };
-      }
-
-      if (name) {
-        query = { ...query, name: { $regex: name, $options: "i" } };
-      }
+      // Fetch all doctors with optional filters
+      result = await getAllDoctors({ specialty, name });
     }
 
-    console.log(`🔍 Query object:`, JSON.stringify(query));
+    const response = successResponse(result, undefined, 200);
 
-    const doctors = await Doctor.find(query).sort({ createdAt: -1 });
-
-    console.log(`✓ Found ${doctors.length} doctor(s)`);
-
-    const response = NextResponse.json(
-      {
-        success: true,
-        data: doctors,
-        count: doctors.length,
-      },
-      { status: 200 }
+    // Set cache headers based on query
+    const cacheTime =
+      specialty || name ? 60 : 120; // Less cache for filtered searches
+    response.headers.set(
+      "Cache-Control",
+      `public, max-age=${cacheTime}, s-maxage=${cacheTime}`
     );
 
-    // Add cache headers for performance
-    // Cache for 60 seconds for search queries, 120 seconds for full list
-    const cacheTime = query && Object.keys(query).length > 0 ? 60 : 120;
-    response.headers.set("Cache-Control", `public, max-age=${cacheTime}, s-maxage=${cacheTime}`);
-    
     return response;
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    console.error("❌ GET /api/doctors error:", errorMessage);
-    console.error("Full error:", error);
+    console.error("[API] ❌ Get doctors error:", error);
 
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Error fetching doctors",
-        error: errorMessage,
-      },
-      { status: 500 }
-    );
+    const { statusCode, message, code } = handleError(error);
+    return errorResponse(message, code, statusCode);
   }
 }
 
+/**
+ * POST /api/doctors
+ * Create a new doctor (admin only)
+ */
 export async function POST(request: NextRequest) {
   try {
-    console.log("📥 POST /api/doctors - Request received");
-
-    console.log("🔗 Connecting to MongoDB...");
-    await connectDB();
-    console.log("✓ MongoDB connected");
-
     const body = await request.json();
-    console.log(`📝 Request body:`, {
+
+    // Create doctor via service
+    const result = await createDoctor({
       name: body.name,
       specialty: body.specialty,
-      opdFees: body.opdFees,
+      fee: body.fee || body.opdFees,
+      slots: body.slots || [],
     });
 
-    const {
-      name,
-      qualification,
-      experience,
-      address,
-      googleLocation,
-      phone,
-      opdFees,
-      specialty,
-      slots,
-    } = body;
+    console.log(`[API] ✅ Doctor created: ${result._id}`);
 
-    // Validation
-    if (
-      !name ||
-      !qualification ||
-      !experience ||
-      !address ||
-      !googleLocation ||
-      !phone ||
-      opdFees === undefined ||
-      !specialty
-    ) {
-      console.warn("⚠️ Missing required fields in request");
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Missing required fields",
-        },
-        { status: 400 }
-      );
-    }
-
-    console.log(`✓ Validation passed, creating doctor: ${name}`);
-
-    const newDoctor = await Doctor.create({
-      name,
-      qualification,
-      experience,
-      address,
-      googleLocation,
-      phone,
-      opdFees: Number(opdFees),
-      specialty,
-      slots: slots || [],
-    });
-
-    console.log(`✓ Doctor created successfully: ${newDoctor._id}`);
-
-    return NextResponse.json(
+    return createdResponse(
       {
-        success: true,
-        data: newDoctor,
-        message: "Doctor added successfully",
+        ...result.toObject?.() || result,
+        _id: result._id?.toString?.() || result._id,
       },
-      { status: 201 }
+      "Doctor added successfully"
     );
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    console.error("❌ POST /api/doctors error:", errorMessage);
-    console.error("Full error:", error);
+    console.error("[API] ❌ Create doctor error:", error);
 
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Error creating doctor",
-        error: errorMessage,
-      },
-      { status: 500 }
-    );
+    const { statusCode, message, code } = handleError(error);
+    return errorResponse(message, code, statusCode);
   }
 }

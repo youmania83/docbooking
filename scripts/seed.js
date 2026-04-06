@@ -2,6 +2,7 @@
  * OPTIONAL: Database Seed Script
  * 
  * This file can be used to populate the database with test doctors.
+ * ONLY RUNS IN DEVELOPMENT MODE FOR SAFETY
  * 
  * Usage:
  * 1. Add this to scripts in package.json:
@@ -15,27 +16,75 @@
  */
 
 const mongoose = require("mongoose");
+require("dotenv").config({ path: ".env.local" });
+
+// Safety check: Only allow in development
+if (process.env.NODE_ENV === "production") {
+  console.error("❌ SAFETY ERROR: Seed script cannot run in production!");
+  console.error("Set NODE_ENV=development to run this script.");
+  process.exit(1);
+}
 
 // MongoDB connection
 async function connectDB() {
   const mongoURI = process.env.MONGODB_URI;
   if (!mongoURI) {
-    throw new Error("MONGODB_URI is not defined");
+    throw new Error("MONGODB_URI is not defined in environment variables");
   }
   await mongoose.connect(mongoURI);
 }
 
-// Doctor schema
+// Doctor schema (must match the actual model)
 const doctorSchema = new mongoose.Schema({
-  name: String,
-  qualification: String,
-  experience: String,
-  address: String,
-  googleLocation: String,
-  phone: String,
-  opdFees: Number,
-  specialty: String,
+  name: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  qualification: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  experience: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  address: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  googleLocation: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  phone: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  opdFees: {
+    type: Number,
+    required: true,
+    min: 0,
+  },
+  specialty: {
+    type: String,
+    required: true,
+    trim: true,
+  },
   slots: [String],
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
+  },
 });
 
 const Doctor = mongoose.model("Doctor", doctorSchema);
@@ -119,29 +168,60 @@ const testDoctors = [
 // Seed database
 async function seed() {
   try {
+    console.log("🌱 Starting database seed...");
+    console.log(`Node environment: ${process.env.NODE_ENV || "development"}`);
+
     await connectDB();
-    console.log("Connected to MongoDB");
+    console.log("✅ Connected to MongoDB");
 
-    // Clear existing doctors (optional)
-    // const cleaned = await Doctor.deleteMany({});
-    // console.log(`Deleted ${cleaned.deletedCount} existing doctors`);
+    // Validate test data
+    if (!testDoctors || testDoctors.length === 0) {
+      throw new Error("No test doctors defined");
+    }
 
-    const result = await Doctor.insertMany(testDoctors);
-    console.log(`✅ Successfully added ${result.length} test doctors!`);
+    console.log(`Seeding ${testDoctors.length} doctors...`);
+
+    // Insert doctors with error handling
+    const result = await Doctor.insertMany(testDoctors, { ordered: false }).catch(
+      (err) => {
+        // Ignore duplicate key errors (E11000) but throw others
+        if (err.code === 11000) {
+          console.warn(
+            "⚠️  Some doctors already exist in database. Continuing..."
+          );
+          return err.insertedDocs || [];
+        }
+        throw err;
+      }
+    );
+
+    console.log(
+      `✅ Successfully seeded ${result.length} doctor records!`
+    );
 
     // List all doctors
     const all = await Doctor.find();
     console.log(`\n📊 Total doctors in database: ${all.length}`);
     all.forEach((doc, i) => {
-      console.log(`${i + 1}. ${doc.name} - ${doc.specialty}`);
+      console.log(`   ${i + 1}. ${doc.name} - ${doc.specialty} (${doc.slots.length} slots)`);
     });
 
     await mongoose.disconnect();
-    console.log("\n✨ Done!");
+    console.log("\n✨ Seeding complete!");
+    process.exit(0);
   } catch (error) {
-    console.error("Error seeding database:", error);
+    console.error("❌ Error seeding database:", error.message);
+    console.error(error);
     process.exit(1);
   }
 }
 
-seed();
+// Prevent multiple invocations
+let isRunning = false;
+if (!isRunning) {
+  isRunning = true;
+  seed().catch((err) => {
+    console.error("Fatal error:", err);
+    process.exit(1);
+  });
+}
