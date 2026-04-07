@@ -1,8 +1,35 @@
 import DoctorCard from "@/components/DoctorCard";
-import { Search, AlertCircle } from "lucide-react";
+import {
+  Search,
+  AlertCircle,
+  Heart,
+  Smile,
+  Stethoscope,
+  Baby,
+  Bone,
+  Scissors,
+  UserRound,
+  Syringe,
+} from "lucide-react";
 import { Metadata } from "next";
 import { connectDB } from "@/lib/mongodb";
 import Doctor from "@/models/Doctor";
+
+// Specialty to icon mapping
+const specialtyIconMap: Record<string, React.ReactNode> = {
+  "Cardiologist": <Heart size={14} />,
+  "Dentist": <Smile size={14} />,
+  "General Physician": <UserRound size={14} />,
+  "Gynecologist": <Syringe size={14} />,
+  "Orthopedic": <Bone size={14} />,
+  "Pediatrician": <Baby size={14} />,
+  "Specialist/Surgeon/Best Orthopedic": <Scissors size={14} />,
+  "Surgeon": <Scissors size={14} />,
+};
+
+function getSpecialtyIcon(specialty: string): React.ReactNode {
+  return specialtyIconMap[specialty] || <Stethoscope size={14} />;
+}
 
 // ISR: Revalidate cached data every 60 seconds
 export const revalidate = 60;
@@ -126,29 +153,31 @@ export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
             />
           </form>
 
-          {/* Specialty Filter */}
+          {/* Specialty Filter with Icons */}
           {specialties.length > 0 && (
             <div className="flex flex-wrap gap-2">
               <a
                 href="/doctors"
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm font-medium transition-all duration-200 ${
                   !specialtyFilter
-                    ? "bg-blue-600 text-white"
-                    : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                    ? "bg-blue-600 text-white border-blue-600 shadow-md"
+                    : "bg-white text-gray-700 border-gray-200 hover:border-blue-400 hover:text-blue-600"
                 }`}
               >
+                <Stethoscope size={15} />
                 All Specialties
               </a>
               {specialties.map((specialty) => (
                 <a
                   key={specialty}
                   href={`/doctors?specialty=${encodeURIComponent(specialty)}`}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm font-medium transition-all duration-200 ${
                     specialtyFilter === specialty
-                      ? "bg-blue-600 text-white"
-                      : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                      ? "bg-blue-600 text-white border-blue-600 shadow-md"
+                      : "bg-white text-gray-700 border-gray-200 hover:border-blue-400 hover:text-blue-600"
                   }`}
                 >
+                  {getSpecialtyIcon(specialty)}
                   {specialty}
                 </a>
               ))}
