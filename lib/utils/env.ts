@@ -1,12 +1,21 @@
 /**
  * Environment variable validation
  * Ensures all required env vars are present at runtime
+ * 
+ * Required for Vercel production:
+ * - MONGODB_URI: MongoDB Atlas connection string
+ * - ADMIN_PASSWORD: Admin panel login password
+ * - GMAIL_USER: Gmail account for sending OTPs
+ * - GMAIL_APP_PASSWORD: Gmail app-specific password (16 chars)
+ * - NODE_ENV: "production" or "development"
  */
 
 export function validateEnv(): void {
   const requiredEnvs = [
     "MONGODB_URI",
-    "FAST2SMS_API_KEY",
+    "ADMIN_PASSWORD",
+    "GMAIL_USER",
+    "GMAIL_APP_PASSWORD",
   ];
 
   const missing: string[] = [];
@@ -20,7 +29,7 @@ export function validateEnv(): void {
   if (missing.length > 0) {
     throw new Error(
       `Missing required environment variables: ${missing.join(", ")}. ` +
-      `Please check your .env.local file.`
+      `Please configure these in Vercel project settings or add to your .env.local file.`
     );
   }
 }
