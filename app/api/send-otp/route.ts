@@ -1,16 +1,13 @@
 /**
  * POST /api/send-otp
- * Send OTP to email address with validation and rate limiting
+ * Send OTP to mobile phone via SMS (Fast2SMS)
  * 
  * Request:
  * POST /api/send-otp
- * { "email": "user@example.com" }
+ * { "phone": "9876543210" }
  * 
  * Response:
- * { "success": true, "data": { "email": "user@example.com", "expiresIn": 300 } }
- * 
- * NOTE: Currently using EMAIL OTP
- * Mobile SMS (Fast2SMS) is disabled but kept for future use
+ * { "success": true, "data": { "phone": "9876543210", "expiresIn": 300 } }
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -27,12 +24,19 @@ export async function POST(request: NextRequest) {
     // Validate input with Zod
     const validatedData = SendOtpSchema.parse(body);
 
-    // Call service layer (now using email)
-    const result = await sendOtp(validatedData.email);
+    // Get phone number (either from phone field or email field for backward compat)
+    const phone = validatedData.phone || (typeof validatedData.email === 'string' ? validatedData.email : '');
+    
+    if (!phone) {
+      throw new Error("Phone number is required");
+    }
 
-    console.log(`[API] ✅ OTP sent to ${validatedData.email}`);
+    // Call service layer (using phone/SMS)
+    const result = await sendOtp(phone);
 
-    return successResponse(result, "OTP sent to your email successfully", 200);
+    console.log(`[API] ✅ OTP sent to ${phone}`);
+
+    return successResponse(result, "OTP sent to your phone successfully", 200);
   } catch (error) {
     console.error("[API] ❌ Send OTP error:", error);
 
@@ -69,7 +73,7 @@ export async function GET() {
   return NextResponse.json({
     success: true,
     message: "OTP service is running",
-    method: "EMAIL (Mobile SMS disabled for now)",
-    version: "2.0.0",
+    method: "SMS (Fast2SMS)",
+    version: "1.0.0",
   });
 }

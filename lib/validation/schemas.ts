@@ -27,19 +27,27 @@ export const EmailSchema = z
   .toLowerCase();
 
 /**
- * Send OTP request schema (now using EMAIL instead of phone)
+ * Send OTP request schema (using PHONE and SMS)
  */
 export const SendOtpSchema = z.object({
-  email: EmailSchema,
-});
+  email: PhoneSchema.optional().or(z.string()),  // For backward compatibility, but accepts phone
+  phone: PhoneSchema.optional(),
+}).refine(
+  (data) => data.phone || (typeof data.email === 'string' && /^[0-9]{10}$/.test(data.email.replace(/\D/g, ""))),
+  { message: "Valid phone number is required", path: ["phone"] }
+);
 
 /**
- * Verify OTP request schema (now using EMAIL instead of phone)
+ * Verify OTP request schema (using PHONE and SMS)
  */
 export const VerifyOtpSchema = z.object({
-  email: EmailSchema,
+  email: PhoneSchema.optional().or(z.string()),  // For backward compatibility
+  phone: PhoneSchema.optional(),
   otp: OtpSchema,
-});
+}).refine(
+  (data) => data.phone || (typeof data.email === 'string' && /^[0-9]{10}$/.test(data.email.replace(/\D/g, ""))),
+  { message: "Valid phone number is required", path: ["phone"] }
+);
 
 /**
  * Booking details schema

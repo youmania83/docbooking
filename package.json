@@ -16,7 +16,6 @@
     "lucide-react": "^1.7.0",
     "mongoose": "^9.3.3",
     "next": "16.2.2",
-    "nodemailer": "6.10.1",
     "postcss": "^8.4.41",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -25,7 +24,6 @@
   },
   "devDependencies": {
     "@types/node": "^20.19.39",
-    "@types/nodemailer": "^6.4.23",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19",
     "eslint": "^9",

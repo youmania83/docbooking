@@ -1,9 +1,8 @@
 /**
- * OTP Service Layer
+ * OTP Service Layer - Mobile SMS with Fast2SMS
  * Handles all OTP business logic: generation, sending, verification, expiry
  * 
- * Currently sending OTP via EMAIL
- * Mobile SMS (Fast2SMS) logic kept for future use
+ * Uses Fast2SMS for reliable SMS delivery to mobile phones
  */
 
 import { connectDB } from "@/lib/mongodb";
@@ -17,9 +16,8 @@ import {
   DatabaseError,
 } from "@/lib/utils/errors";
 import { getEnv, getEnvOptional } from "@/lib/utils/env";
-import nodemailer from "nodemailer";
 
-// In-memory rate limiting cache: identifier (phone/email) -> last sent timestamp
+// In-memory rate limiting cache: phone -> last sent timestamp
 const lastOtpSentTime: Record<string, number> = {};
 
 /**
@@ -30,84 +28,12 @@ function generateOtp(): string {
 }
 
 /**
- * Send OTP via EMAIL
+ * Send OTP via Fast2SMS (MOBILE SMS)
  */
-async function sendViaEmail(
-  email: string,
-  otp: string
-): Promise<{ success: boolean; messageId?: string; error?: string }> {
-  try {
-    // Create email transporter
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: getEnvOptional("GMAIL_USER") || "your-email@gmail.com",
-        pass: getEnvOptional("GMAIL_APP_PASSWORD") || "your-app-password",
-      },
-    });
-
-    console.log(`[OTP Service] 📧 Sending email OTP to ${email}`);
-
-    const mailOptions = {
-      from: getEnvOptional("GMAIL_USER") || "noreply@docbooking.in",
-      to: email,
-      subject: "Your DocBooking OTP Verification Code",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #0066cc;">DocBooking - OTP Verification</h2>
-          
-          <p>Hello,</p>
-          
-          <p>Your One-Time Password (OTP) for DocBooking is:</p>
-          
-          <div style="background-color: #f0f0f0; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
-            <h1 style="color: #0066cc; letter-spacing: 5px; margin: 0;">${otp}</h1>
-          </div>
-          
-          <p style="color: #666;">
-            <strong>This OTP will expire in 5 minutes.</strong>
-          </p>
-          
-          <p style="color: #666;">
-            If you didn't request this OTP, please ignore this email.
-          </p>
-          
-          <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
-          
-          <p style="font-size: 12px; color: #999;">
-            DocBooking - Book Doctor Appointments Online<br>
-            © 2026 All rights reserved.
-          </p>
-        </div>
-      `,
-    };
-
-    const info = await transporter.sendMail(mailOptions);
-
-    console.log(`[OTP Service] ✅ Email sent. Message ID: ${info.messageId}`);
-    return { success: true, messageId: info.messageId };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(`[OTP Service] ❌ Email Send Failed: ${message}`);
-    return { success: false, error: message };
-  }
-}
-
-/**
- * Send OTP via FAST2SMS (MOBILE) - DISABLED FOR NOW
- * Will be used later when mobile SMS is configured
- */
-async function sendViaMobileSMS(
+async function sendViaSMS(
   phone: string,
   otp: string
 ): Promise<{ success: boolean; requestId?: string; error?: string }> {
-  // ⚠️ DISABLED: This feature will be enabled later
-  console.log(
-    `[OTP Service] ⏸️  Mobile SMS disabled (will enable later). OTP: ${otp}`
-  );
-
-  // TODO: Uncomment when mobile SMS is ready to use
-  /*
   try {
     const apiKey = getEnv("FAST2SMS_API_KEY");
     const cleanPhone = phone.replace(/\D/g, "");
@@ -145,31 +71,29 @@ async function sendViaMobileSMS(
     console.error(`[OTP Service] ❌ SMS Send Failed: ${message}`);
     return { success: false, error: message };
   }
-  */
-
-  return { success: true }; // For now, just pretend it succeeded
 }
 
 /**
- * Send OTP to email address with rate limiting
- * @param email - Email address to send OTP to
+ * Send OTP to mobile phone with rate limiting
+ * @param phone - Phone number to send OTP to (10-digit)
  */
-export async function sendOtp(email: string): Promise<{
+export async function sendOtp(phone: string): Promise<{
   success: boolean;
-  email: string;
+  phone: string;
   expiresIn: number;
+  devOtp?: string; // Only in development
 }> {
   try {
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      throw new ValidationError("Invalid email address format.");
+    // Validate phone format (10 digits minimum)
+    const phoneRegex = /^[0-9]{10,}$/;
+    const cleanPhone = phone.replace(/\D/g, "");
+    
+    if (!phoneRegex.test(cleanPhone)) {
+      throw new ValidationError("Invalid phone number. Please enter 10 digits.");
     }
 
-    const cleanEmail = email.toLowerCase().trim();
-
     // Check rate limiting
-    const lastSentTime = lastOtpSentTime[cleanEmail];
+    const lastSentTime = lastOtpSentTime[cleanPhone];
     const now = Date.now();
 
     if (lastSentTime) {
@@ -188,7 +112,7 @@ export async function sendOtp(email: string): Promise<{
     await connectDB();
 
     // Check existing OTP attempts
-    const existingOtp = await OtpModel.findOne({ phone: cleanEmail });
+    const existingOtp = await OtpModel.findOne({ phone: cleanPhone });
     if (existingOtp && existingOtp.attempts >= OTP_CONFIG.MAX_ATTEMPTS) {
       throw new RateLimitError(
         "Too many failed attempts. Please try again after 1 hour."
@@ -200,15 +124,17 @@ export async function sendOtp(email: string): Promise<{
     const expiresAt = new Date(Date.now() + OTP_CONFIG.EXPIRY_SECONDS * 1000);
 
     // Debug: show OTP in development
+    let devOtp: string | undefined;
     if (process.env.NODE_ENV === "development") {
-      console.log(`[OTP Service] 🐛 DEV: OTP for ${cleanEmail}: ${otp}`);
+      console.log(`[OTP Service] 🐛 DEV: OTP for ${cleanPhone}: ${otp}`);
+      devOtp = otp;
     }
 
-    // Save to database (using phone field for email for now)
+    // Save to database
     await OtpModel.findOneAndUpdate(
-      { phone: cleanEmail },
+      { phone: cleanPhone },
       {
-        phone: cleanEmail,
+        phone: cleanPhone,
         otp,
         expiresAt,
         attempts: 0,
@@ -217,25 +143,32 @@ export async function sendOtp(email: string): Promise<{
       { upsert: true, new: true }
     );
 
-    // Send via EMAIL
-    const emailResult = await sendViaEmail(cleanEmail, otp);
+    // Send via SMS
+    const smsResult = await sendViaSMS(cleanPhone, otp);
 
-    if (emailResult.success) {
-      lastOtpSentTime[cleanEmail] = now;
-      console.log(`[OTP Service] ✅ OTP email sent to ${cleanEmail}`);
+    if (smsResult.success) {
+      lastOtpSentTime[cleanPhone] = now;
+      console.log(`[OTP Service] ✅ OTP SMS sent to ${cleanPhone}`);
     } else {
       console.warn(
-        `[OTP Service] ⚠️  Email delivery issue: ${emailResult.error}`
+        `[OTP Service] ⚠️  SMS delivery issue: ${smsResult.error}`
       );
       // Still mark rate limit to prevent spam
-      lastOtpSentTime[cleanEmail] = now;
+      lastOtpSentTime[cleanPhone] = now;
     }
 
-    return {
+    const response: any = {
       success: true,
-      email: cleanEmail,
+      phone: cleanPhone,
       expiresIn: OTP_CONFIG.EXPIRY_SECONDS,
     };
+
+    // Include OTP in development response for testing
+    if (devOtp) {
+      response.devOtp = devOtp;
+    }
+
+    return response;
   } catch (error) {
     if (error instanceof ValidationError || error instanceof RateLimitError) {
       throw error;
@@ -247,22 +180,22 @@ export async function sendOtp(email: string): Promise<{
 }
 
 /**
- * Verify OTP for email address
- * @param email - Email address to verify OTP for
+ * Verify OTP for mobile phone
+ * @param phone - Phone number to verify OTP for
  * @param otp - 6-digit OTP code
  */
-export async function verifyOtp(email: string, otp: string): Promise<{
+export async function verifyOtp(phone: string, otp: string): Promise<{
   success: boolean;
   message: string;
 }> {
   try {
     // Validate inputs
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      throw new ValidationError("Invalid email address format.");
+    const phoneRegex = /^[0-9]{10,}$/;
+    const cleanPhone = phone.replace(/\D/g, "");
+    
+    if (!phoneRegex.test(cleanPhone)) {
+      throw new ValidationError("Invalid phone number. Please enter 10 digits.");
     }
-
-    const cleanEmail = email.toLowerCase().trim();
 
     if (!/^[0-9]{6}$/.test(otp)) {
       throw new ValidationError("OTP must be a 6-digit number.");
@@ -271,8 +204,8 @@ export async function verifyOtp(email: string, otp: string): Promise<{
     // Connect to database
     await connectDB();
 
-    // Find OTP record (using phone field for email)
-    const otpRecord = await OtpModel.findOne({ phone: cleanEmail });
+    // Find OTP record
+    const otpRecord = await OtpModel.findOne({ phone: cleanPhone });
 
     if (!otpRecord) {
       throw new NotFoundError(
@@ -282,13 +215,13 @@ export async function verifyOtp(email: string, otp: string): Promise<{
 
     // Check expiry
     if (new Date() > otpRecord.expiresAt) {
-      await OtpModel.deleteOne({ phone: cleanEmail });
+      await OtpModel.deleteOne({ phone: cleanPhone });
       throw new ValidationError("OTP has expired. Please request a new one.");
     }
 
     // Check attempts
     if (otpRecord.attempts >= OTP_CONFIG.MAX_ATTEMPTS) {
-      await OtpModel.deleteOne({ phone: cleanEmail });
+      await OtpModel.deleteOne({ phone: cleanPhone });
       throw new RateLimitError(
         "Too many incorrect attempts. Please request a new OTP."
       );
@@ -300,20 +233,20 @@ export async function verifyOtp(email: string, otp: string): Promise<{
       otpRecord.attempts += 1;
       await otpRecord.save();
 
-      const attemptsLeft = OTP_CONFIG.MAX_ATTEMPTS - otpRecord.attempts;
+      const remainingAttempts = OTP_CONFIG.MAX_ATTEMPTS - otpRecord.attempts;
       throw new ValidationError(
-        `Invalid OTP. ${attemptsLeft} attempts remaining.`
+        `Invalid OTP. ${remainingAttempts} attempts remaining.`
       );
     }
 
-    // Success - delete OTP record
-    await OtpModel.deleteOne({ phone: cleanEmail });
+    // Delete OTP record (one-time use)
+    await OtpModel.deleteOne({ phone: cleanPhone });
 
-    console.log(`[OTP Service] ✅ OTP verified for ${cleanEmail}`);
+    console.log(`[OTP Service] ✅ OTP verified for ${cleanPhone}`);
 
     return {
       success: true,
-      message: "OTP verified successfully.",
+      message: "OTP verified successfully",
     };
   } catch (error) {
     if (
@@ -324,7 +257,7 @@ export async function verifyOtp(email: string, otp: string): Promise<{
       throw error;
     }
     throw new DatabaseError(
-      error instanceof Error ? error.message : "OTP verification failed"
+      error instanceof Error ? error.message : "Failed to verify OTP"
     );
   }
 }

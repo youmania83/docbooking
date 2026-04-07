@@ -1,15 +1,13 @@
 /**
  * POST /api/verify-otp
- * Verify OTP for email address
+ * Verify OTP sent to mobile phone
  * 
  * Request:
  * POST /api/verify-otp
- * { "email": "user@example.com", "otp": "123456" }
+ * { "phone": "9876543210", "otp": "123456" }
  * 
  * Response:
  * { "success": true, "data": { "message": "OTP verified successfully" } }
- * 
- * NOTE: Now using EMAIL OTP instead of phone OTP
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -26,10 +24,17 @@ export async function POST(request: NextRequest) {
     // Validate input with Zod
     const validatedData = VerifyOtpSchema.parse(body);
 
-    // Call service layer (now using email)
-    const result = await verifyOtp(validatedData.email, validatedData.otp);
+    // Get phone number (either from phone field or email field for backward compat)
+    const phone = validatedData.phone || (typeof validatedData.email === 'string' ? validatedData.email : '');
+    
+    if (!phone) {
+      throw new Error("Phone number is required");
+    }
 
-    console.log(`[API] ✅ OTP verified for ${validatedData.email}`);
+    // Call service layer (using phone/SMS)
+    const result = await verifyOtp(phone, validatedData.otp);
+
+    console.log(`[API] ✅ OTP verified for ${phone}`);
 
     return successResponse(result, "OTP verified successfully", 200);
   } catch (error) {
