@@ -12,17 +12,28 @@
 
 # testing
 /coverage
+*.lcov
+.nyc_output
 
 # next.js
 /.next/
 /out/
+next-env.d.ts
 
 # production
 /build
+/dist
 
 # misc
 .DS_Store
 *.pem
+*.log
+*.swp
+*.swo
+*~
+.vscode
+.idea
+*.iml
 
 # debug
 npm-debug.log*
@@ -31,12 +42,35 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
-.env*
+.env
+.env.local
+.env.*.local
 
 # vercel
 .vercel
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
-.env*.local
+
+# IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+*.swp
+*.swo
+
+# System files
+Thumbs.db
+ehthumbs.db
+
+# Optional npm cache
+.npm
+
+# Optional eslint cache
+.eslintcache
