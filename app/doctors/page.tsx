@@ -153,34 +153,36 @@ export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
             />
           </form>
 
-          {/* Specialty Filter with Icons */}
+          {/* Specialty Filter with Icons - Mobile Scrollable */}
           {specialties.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              <a
-                href="/doctors"
-                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm font-medium transition-all duration-200 ${
-                  !specialtyFilter
-                    ? "bg-blue-600 text-white border-blue-600 shadow-md"
-                    : "bg-white text-gray-700 border-gray-200 hover:border-blue-400 hover:text-blue-600"
-                }`}
-              >
-                <Stethoscope size={15} />
-                All Specialties
-              </a>
-              {specialties.map((specialty) => (
+            <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
+              <div className="flex gap-2 flex-wrap sm:flex-wrap">
                 <a
-                  key={specialty}
-                  href={`/doctors?specialty=${encodeURIComponent(specialty)}`}
-                  className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm font-medium transition-all duration-200 ${
-                    specialtyFilter === specialty
+                  href="/doctors"
+                  className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
+                    !specialtyFilter
                       ? "bg-blue-600 text-white border-blue-600 shadow-md"
                       : "bg-white text-gray-700 border-gray-200 hover:border-blue-400 hover:text-blue-600"
                   }`}
                 >
-                  {getSpecialtyIcon(specialty)}
-                  {specialty}
+                  <Stethoscope size={15} />
+                  All Specialties
                 </a>
-              ))}
+                {specialties.map((specialty) => (
+                  <a
+                    key={specialty}
+                    href={`/doctors?specialty=${encodeURIComponent(specialty)}`}
+                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
+                      specialtyFilter === specialty
+                        ? "bg-blue-600 text-white border-blue-600 shadow-md"
+                        : "bg-white text-gray-700 border-gray-200 hover:border-blue-400 hover:text-blue-600"
+                    }`}
+                  >
+                    {getSpecialtyIcon(specialty)}
+                    {specialty}
+                  </a>
+                ))}
+              </div>
             </div>
           )}
         </div>
