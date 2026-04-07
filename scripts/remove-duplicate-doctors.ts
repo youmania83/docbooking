@@ -1,11 +1,18 @@
 /**
  * Remove duplicate doctors from database
- * Keeps only the first occurrence of each doctor name
+ * Detects duplicates by:
+ * 1. Exact name match (case-insensitive)
+ * 2. Similar first name + specialty + fee combo (likely same doctor with name variations)
  */
 
 import mongoose from "mongoose";
 import { connectDB } from "../lib/mongodb";
 import Doctor from "../models/Doctor";
+
+// Extract first name from doctor name
+function getFirstName(name: string): string {
+  return name.split(" ")[0].toLowerCase().trim();
+}
 
 async function removeDuplicateDoctors() {
   try {
@@ -14,23 +21,37 @@ async function removeDuplicateDoctors() {
 
     // Get all doctors sorted by creation date
     const allDoctors = await Doctor.find().sort({ createdAt: 1 });
-    console.log(`📊 Total doctors in database: ${allDoctors.length}`);
+    console.log(`📊 Total doctors in database: ${allDoctors.length}\n`);
 
-    // Track seen names and IDs to delete
-    const seenNames = new Set<string>();
+    // Track seen combinations and IDs to delete
+    const seenExactNames = new Set<string>();
+    const seenCombinations = new Set<string>(); // firstName + specialty + fee
     const idsToDelete: string[] = [];
 
     for (const doctor of allDoctors) {
       const doctorName = doctor.name.toLowerCase().trim();
+      const firstName = getFirstName(doctor.name);
+      const combination = `${firstName}|${doctor.specialty.toLowerCase()}|${doctor.opdFees}`;
 
-      if (seenNames.has(doctorName)) {
+      // Check for exact name match
+      if (seenExactNames.has(doctorName)) {
         console.log(
-          `❌ Duplicate found: "${doctor.name}" (ID: ${doctor._id}) - Will delete`
+          `❌ EXACT DUPLICATE: "${doctor.name}" (ID: ${doctor._id})`
+        );
+        idsToDelete.push(doctor._id.toString());
+      }
+      // Check for similar doctors (same first name + specialty + fee)
+      else if (seenCombinations.has(combination)) {
+        console.log(
+          `⚠️  SIMILAR DOCTOR: "${doctor.name}" - ${doctor.specialty}, ₹${doctor.opdFees} (ID: ${doctor._id})`
         );
         idsToDelete.push(doctor._id.toString());
       } else {
-        console.log(`✅ Keeping: "${doctor.name}" (ID: ${doctor._id})`);
-        seenNames.add(doctorName);
+        console.log(
+          `✅ Keeping: "${doctor.name}" - ${doctor.specialty}, ₹${doctor.opdFees} (ID: ${doctor._id})`
+        );
+        seenExactNames.add(doctorName);
+        seenCombinations.add(combination);
       }
     }
 
