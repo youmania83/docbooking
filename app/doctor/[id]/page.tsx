@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Calendar, MapPin, Award, Loader, AlertCircle } from "lucide-react";
 import PatientDetailsForm, { PatientDetails } from "@/components/PatientDetailsForm";
 import BookingConfirmationModal from "@/components/BookingConfirmationModal";
+import OtpVerification from "@/components/OtpVerification";
 
 interface Doctor {
   _id: string;
@@ -26,9 +27,10 @@ export default function DoctorDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
-  const [bookingStep, setBookingStep] = useState<"slot-selection" | "patient-details">("slot-selection");
+  const [bookingStep, setBookingStep] = useState<"slot-selection" | "otp-verification" | "patient-details">("slot-selection");
   const [patientDetails, setPatientDetails] = useState<PatientDetails | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [verifiedPhone, setVerifiedPhone] = useState<string | null>(null);
 
   // Fetch doctor data from API
   useEffect(() => {
@@ -86,8 +88,13 @@ export default function DoctorDetailPage() {
 
   const handleConfirmBooking = () => {
     if (selectedSlot) {
-      setBookingStep("patient-details");
+      setBookingStep("otp-verification");
     }
+  };
+
+  const handleOtpVerified = (phone: string) => {
+    setVerifiedPhone(phone);
+    setBookingStep("patient-details");
   };
 
   const handlePatientDetailsSubmit = (details: PatientDetails) => {
@@ -100,6 +107,7 @@ export default function DoctorDetailPage() {
     setBookingStep("slot-selection");
     setPatientDetails(null);
     setShowConfirmation(false);
+    setVerifiedPhone(null);
   };
 
   const handleEditDetails = () => {
@@ -278,6 +286,46 @@ export default function DoctorDetailPage() {
                   Proceed to enter your details
                 </p>
               </div>
+            ) : bookingStep === "otp-verification" ? (
+              // OTP Verification Step
+              <div>
+                <div className="mb-6">
+                  <button
+                    onClick={() => setBookingStep("slot-selection")}
+                    className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold transition-colors"
+                  >
+                    <ArrowLeft size={20} />
+                    Change Slot
+                  </button>
+                </div>
+
+                {/* Current Selection Display */}
+                <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6 mb-8">
+                  <h3 className="font-semibold text-gray-900 mb-4">
+                    Current Selection
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-600 uppercase">Doctor</p>
+                      <p className="text-gray-900 font-semibold">{doctor.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-600 uppercase">Time Slot</p>
+                      <p className="text-blue-600 font-bold text-lg">{selectedSlot}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-600 uppercase">Specialty</p>
+                      <p className="text-gray-900 font-semibold">{doctor.specialty}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-600 uppercase">Fee</p>
+                      <p className="text-blue-600 font-bold">₹{doctor.opdFees}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <OtpVerification onVerified={handleOtpVerified} />
+              </div>
             ) : (
               // Patient Details Step
               <div>
@@ -315,6 +363,14 @@ export default function DoctorDetailPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Phone Verified Display */}
+                {verifiedPhone && (
+                  <div className="bg-green-50 border-2 border-green-200 rounded-xl p-6 mb-8">
+                    <p className="text-green-700 font-semibold">✅ Phone Verified</p>
+                    <p className="text-green-600 text-sm">{verifiedPhone}</p>
+                  </div>
+                )}
 
                 <PatientDetailsForm onSubmit={handlePatientDetailsSubmit} />
               </div>
