@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IOtp extends Document {
-  email: string;
+  phone: string;
   otp: string;
   expiresAt: Date;
   attempts: number;
@@ -11,14 +11,13 @@ export interface IOtp extends Document {
 
 const OtpSchema = new Schema<IOtp>(
   {
-    email: {
+    phone: {
       type: String,
-      required: [true, "Email is required"],
+      required: [true, "Phone number is required"],
       trim: true,
-      lowercase: true,
       match: [
-        /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-        "Please provide a valid email address",
+        /^[0-9]{10,}$/,
+        "Please provide a valid 10-digit phone number",
       ],
       index: true,
     },
