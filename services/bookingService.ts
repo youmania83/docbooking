@@ -18,7 +18,9 @@ export async function createBooking(bookingData: {
   gender: string;
   phone: string;
   doctorId: string;
-  slot: string;
+  appointmentDate: string | Date;
+  appointmentTime: string;
+  slot?: string; // Legacy field for backward compatibility
   email?: string;
 }): Promise<any> {
   try {
@@ -32,8 +34,9 @@ export async function createBooking(bookingData: {
       typeof bookingData.phone !== "string" ||
       !bookingData.doctorId ||
       typeof bookingData.doctorId !== "string" ||
-      !bookingData.slot ||
-      typeof bookingData.slot !== "string"
+      !bookingData.appointmentDate ||
+      !bookingData.appointmentTime ||
+      typeof bookingData.appointmentTime !== "string"
     ) {
       throw new ValidationError("Invalid or missing required fields.");
     }
@@ -63,6 +66,18 @@ export async function createBooking(bookingData: {
       throw new ValidationError("Phone number must be a valid 10-digit number.");
     }
 
+    // Validate appointment date
+    const appointmentDate = new Date(bookingData.appointmentDate);
+    if (isNaN(appointmentDate.getTime())) {
+      throw new ValidationError("Invalid appointment date.");
+    }
+
+    // Validate appointment time format (HH:MM AM/PM)
+    const timeRegex = /^(0[0-9]|1[0-2]):[0-5][0-9]\s(AM|PM)$/i;
+    if (!timeRegex.test(bookingData.appointmentTime)) {
+      throw new ValidationError("Appointment time must be in HH:MM AM/PM format.");
+    }
+
     // Validate email if provided
     if (bookingData.email) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -87,19 +102,16 @@ export async function createBooking(bookingData: {
       throw new NotFoundError("Doctor not found.");
     }
 
-    // Verify slot is available
-    if (!doctor.slots || !doctor.slots.includes(bookingData.slot)) {
-      throw new ValidationError("Invalid or unavailable time slot.");
-    }
-
-    // Create booking
+    // Create booking with new fields
     const booking = new Booking({
       patientName: trimmedName,
       age: parsedAge,
       gender: bookingData.gender,
       phone: phoneDigits,
       doctorId: new mongoose.Types.ObjectId(bookingData.doctorId),
-      slot: bookingData.slot,
+      appointmentDate: appointmentDate,
+      appointmentTime: bookingData.appointmentTime,
+      slot: bookingData.slot || bookingData.appointmentTime, // Use appointmentTime as fallback for slot
       email: bookingData.email || undefined,
       status: "confirmed",
     });

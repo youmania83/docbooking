@@ -16,9 +16,7 @@ import {
 import { handleError } from "@/lib/utils/errors";
 
 /**
- * POST /api/bookings
- * Create a new booking
- * 
+ * POST /api/bookings - Create a new booking
  * Request:
  * {
  *   "patientName": "John Doe",
@@ -26,7 +24,9 @@ import { handleError } from "@/lib/utils/errors";
  *   "gender": "Male",
  *   "phone": "9876543210",
  *   "doctorId": "...",
- *   "slot": "10:00 AM"
+ *   "appointmentDate": "2024-12-25",
+ *   "appointmentTime": "10:00 AM",
+ *   "email": "john@example.com" (optional)
  * }
  */
 export async function POST(request: NextRequest) {

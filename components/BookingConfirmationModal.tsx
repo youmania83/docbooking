@@ -21,24 +21,28 @@ interface BookingConfirmationModalProps {
   isOpen: boolean;
   doctor: Doctor;
   slot: string;
+  appointmentDate?: Date | null;
   patientDetails: PatientDetails;
   onClose: () => void;
   onNewBooking: () => void;
   onEdit?: () => void;
   onBookingCreated?: (bookingId: string) => void;
   existingBookingId?: string | null;
+  verifiedPhone?: string | null;
 }
 
 export default function BookingConfirmationModal({
   isOpen,
   doctor,
   slot,
+  appointmentDate,
   patientDetails,
   onClose,
   onNewBooking,
   onEdit,
   onBookingCreated,
   existingBookingId,
+  verifiedPhone,
 }: BookingConfirmationModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,9 +71,11 @@ export default function BookingConfirmationModal({
           patientName: patientDetails.name,
           age: patientDetails.age,
           gender: patientDetails.gender,
-          phone: patientDetails.mobileNumber,
+          phone: verifiedPhone || patientDetails.mobileNumber,
           doctorId: doctor._id,
-          slot: slot,
+          appointmentDate: appointmentDate || new Date(),
+          appointmentTime: slot,
+          slot: slot, // Legacy support
         }),
       });
 

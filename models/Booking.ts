@@ -6,7 +6,9 @@ export interface IBooking extends Document {
   gender: string;
   phone: string;
   doctorId: mongoose.Types.ObjectId;
-  slot: string;
+  appointmentDate: Date;
+  appointmentTime: string;
+  slot?: string; // Legacy field for backward compatibility
   createdAt: Date;
   updatedAt: Date;
 }
@@ -44,6 +46,15 @@ const BookingSchema = new Schema<IBooking>(
     doctorId: {
       type: Schema.Types.ObjectId,
       ref: "Doctor",
+    appointmentDate: {
+      type: Date,
+      required: [true, "Appointment date is required"],
+    },
+    appointmentTime: {
+      type: String,
+      required: [true, "Appointment time is required"],
+      match: [/^\d{2}:\d{2}\s(AM|PM)$/i, "Appointment time must be in HH:MM AM/PM format"],
+    },
       required: [true, "Doctor ID is required"],
     },
     slot: {

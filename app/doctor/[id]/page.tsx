@@ -3,10 +3,11 @@
 import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, Calendar, MapPin, Award, Loader, AlertCircle } from "lucide-react";
+import { ArrowLeft, MapPin, Award, Loader, AlertCircle } from "lucide-react";
 import PatientDetailsForm, { PatientDetails } from "@/components/PatientDetailsForm";
 import BookingConfirmationModal from "@/components/BookingConfirmationModal";
 import OtpVerification from "@/components/OtpVerification";
+import AppointmentDateTimeSelector from "@/components/AppointmentDateTimeSelector";
 
 interface Doctor {
   _id: string;
@@ -26,8 +27,13 @@ export default function DoctorDetailPage() {
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
-  const [bookingStep, setBookingStep] = useState<"slot-selection" | "otp-verification" | "patient-details">("slot-selection");
+  
+  // Appointment date and time states
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  
+  // Booking flow states
+  const [bookingStep, setBookingStep] = useState<"appointment-selection" | "otp-verification" | "patient-details">("appointment-selection");
   const [patientDetails, setPatientDetails] = useState<PatientDetails | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [verifiedPhone, setVerifiedPhone] = useState<string | null>(null);
@@ -86,8 +92,13 @@ export default function DoctorDetailPage() {
     );
   }
 
+  const handleAppointmentChange = (date: Date | null, time: string | null) => {
+    setSelectedDate(date);
+    setSelectedTime(time);
+  };
+
   const handleConfirmBooking = () => {
-    if (selectedSlot) {
+    if (selectedDate && selectedTime) {
       setBookingStep("otp-verification");
     }
   };
@@ -103,8 +114,9 @@ export default function DoctorDetailPage() {
   };
 
   const handleNewBooking = () => {
-    setSelectedSlot(null);
-    setBookingStep("slot-selection");
+    setSelectedDate(null);
+    setSelectedTime(null);
+    setBookingStep("appointment-selection");
     setPatientDetails(null);
     setShowConfirmation(false);
     setVerifiedPhone(null);
@@ -115,9 +127,18 @@ export default function DoctorDetailPage() {
     setBookingStep("patient-details");
   };
 
+  const formattedDate = selectedDate
+    ? new Date(selectedDate).toLocaleDateString("en-IN", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : "Not selected";
+
   return (
     <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Back Button */}
         <Link href="/doctors">
           <button className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold mb-8 transition-colors">
@@ -126,9 +147,9 @@ export default function DoctorDetailPage() {
           </button>
         </Link>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid lg:grid-cols-4 gap-8">
           {/* Doctor Info Card */}
-          <div className="md:col-span-1">
+          <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100 sticky top-24">
               <div className="mb-6 text-center">
                 <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -192,76 +213,53 @@ export default function DoctorDetailPage() {
           </div>
 
           {/* Booking Section */}
-          <div className="md:col-span-2">
-            {bookingStep === "slot-selection" ? (
-              // Slot Selection Step
-              <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-                <div className="mb-8">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
-                    <Calendar size={24} className="text-blue-600" />
-                    Select Time Slot
-                  </h2>
-                  <p className="text-gray-600">
-                    Choose your preferred appointment time
-                  </p>
-                </div>
-
-                {/* Time Slots Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
-                  {doctor.slots.map((slot) => (
-                    <button
-                      key={slot}
-                      onClick={() => setSelectedSlot(slot)}
-                      className={`py-4 px-4 rounded-xl font-semibold transition-all duration-200 border-2 ${
-                        selectedSlot === slot
-                          ? "bg-blue-600 text-white border-blue-600 shadow-lg scale-105"
-                          : "bg-white text-gray-900 border-gray-200 hover:border-blue-600 hover:shadow-md"
-                      }`}
-                    >
-                      {slot}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Selected Slot Display */}
-                {selectedSlot && (
-                  <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6 mb-8">
-                    <p className="text-gray-700 mb-2">
-                      <span className="font-semibold">Selected Slot:</span>
-                    </p>
-                    <p className="text-2xl font-bold text-blue-600">
-                      {selectedSlot}
-                    </p>
-                  </div>
-                )}
+          <div className="lg:col-span-3">
+            {bookingStep === "appointment-selection" ? (
+              // Appointment Date and Time Selection
+              <div>
+                <AppointmentDateTimeSelector
+                  onSelectionChange={handleAppointmentChange}
+                  selectedDate={selectedDate}
+                  selectedTime={selectedTime}
+                  availableSlots={doctor.slots}
+                  minDaysFromNow={0}
+                  maxDaysFromNow={30}
+                  isLoadingSlots={false}
+                />
 
                 {/* Booking Summary */}
-                <div className="bg-gray-50 rounded-xl p-6 mb-8">
-                  <h3 className="font-semibold text-gray-900 mb-4">
+                <div className="bg-gray-50 rounded-2xl p-6 mt-8 border border-gray-200">
+                  <h3 className="font-semibold text-gray-900 mb-4 text-lg">
                     Booking Summary
                   </h3>
                   <div className="space-y-3">
-                    <div className="flex justify-between">
+                    <div className="flex justify-between items-center">
                       <span className="text-gray-600">Doctor</span>
                       <span className="font-semibold text-gray-900">
                         {doctor.name}
                       </span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between items-center">
                       <span className="text-gray-600">Specialty</span>
                       <span className="font-semibold text-gray-900">
                         {doctor.specialty}
                       </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Time Slot</span>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Appointment Date</span>
                       <span className="font-semibold text-gray-900">
-                        {selectedSlot || "Not selected"}
+                        {formattedDate}
                       </span>
                     </div>
-                    <div className="border-t border-gray-200 pt-3 flex justify-between">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Appointment Time</span>
+                      <span className="font-semibold text-blue-600">
+                        {selectedTime || "Not selected"}
+                      </span>
+                    </div>
+                    <div className="border-t border-gray-300 pt-3 flex justify-between items-center">
                       <span className="text-gray-900 font-semibold">Fee</span>
-                      <span className="text-xl font-bold text-blue-600">
+                      <span className="text-2xl font-bold text-blue-600">
                         ₹{doctor.opdFees}
                       </span>
                     </div>
@@ -271,19 +269,18 @@ export default function DoctorDetailPage() {
                 {/* Confirm Booking Button */}
                 <button
                   onClick={handleConfirmBooking}
-                  disabled={!selectedSlot}
-                  className={`w-full py-4 px-6 rounded-xl font-semibold text-lg transition-all duration-200 ${
-                    selectedSlot
+                  disabled={!selectedDate || !selectedTime}
+                  className={`w-full mt-8 py-4 px-6 rounded-xl font-semibold text-lg transition-all duration-200 ${
+                    selectedDate && selectedTime
                       ? "bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl cursor-pointer"
                       : "bg-gray-300 text-gray-500 cursor-not-allowed"
                   }`}
                 >
-                  {selectedSlot ? "Confirm Booking" : "Select a Time Slot"}
+                  {selectedDate && selectedTime ? "Proceed to Verification" : "Select Date and Time"}
                 </button>
 
-                {/* Footer Note */}
                 <p className="text-xs text-gray-500 text-center mt-6">
-                  Proceed to enter your details
+                  Proceed to verify your phone number and enter patient details
                 </p>
               </div>
             ) : bookingStep === "otp-verification" ? (
@@ -291,11 +288,11 @@ export default function DoctorDetailPage() {
               <div>
                 <div className="mb-6">
                   <button
-                    onClick={() => setBookingStep("slot-selection")}
+                    onClick={() => setBookingStep("appointment-selection")}
                     className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold transition-colors"
                   >
                     <ArrowLeft size={20} />
-                    Change Slot
+                    Change Appointment
                   </button>
                 </div>
 
@@ -310,12 +307,12 @@ export default function DoctorDetailPage() {
                       <p className="text-gray-900 font-semibold">{doctor.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-600 uppercase">Time Slot</p>
-                      <p className="text-blue-600 font-bold text-lg">{selectedSlot}</p>
+                      <p className="text-xs text-gray-600 uppercase">Date</p>
+                      <p className="text-blue-600 font-bold text-lg">{formattedDate}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-600 uppercase">Specialty</p>
-                      <p className="text-gray-900 font-semibold">{doctor.specialty}</p>
+                      <p className="text-xs text-gray-600 uppercase">Time</p>
+                      <p className="text-blue-600 font-bold">{selectedTime}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-600 uppercase">Fee</p>
@@ -331,11 +328,11 @@ export default function DoctorDetailPage() {
               <div>
                 <div className="mb-6">
                   <button
-                    onClick={() => setBookingStep("slot-selection")}
+                    onClick={() => setBookingStep("appointment-selection")}
                     className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold transition-colors"
                   >
                     <ArrowLeft size={20} />
-                    Change Slot
+                    Change Appointment
                   </button>
                 </div>
                 
@@ -350,12 +347,12 @@ export default function DoctorDetailPage() {
                       <p className="text-gray-900 font-semibold">{doctor.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-600 uppercase">Time Slot</p>
-                      <p className="text-blue-600 font-bold text-lg">{selectedSlot}</p>
+                      <p className="text-xs text-gray-600 uppercase">Date</p>
+                      <p className="text-blue-600 font-bold text-lg">{formattedDate}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-600 uppercase">Specialty</p>
-                      <p className="text-gray-900 font-semibold">{doctor.specialty}</p>
+                      <p className="text-xs text-gray-600 uppercase">Time</p>
+                      <p className="text-blue-600 font-bold">{selectedTime}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-600 uppercase">Fee</p>
@@ -379,15 +376,17 @@ export default function DoctorDetailPage() {
         </div>
 
         {/* Booking Confirmation Modal */}
-        {doctor && selectedSlot && patientDetails && (
+        {doctor && selectedDate && selectedTime && patientDetails && (
           <BookingConfirmationModal
             isOpen={showConfirmation}
             doctor={doctor}
-            slot={selectedSlot}
+            slot={selectedTime}
+            appointmentDate={selectedDate}
             patientDetails={patientDetails}
             onClose={handleNewBooking}
             onNewBooking={handleNewBooking}
             onEdit={handleEditDetails}
+            verifiedPhone={verifiedPhone}
           />
         )}
       </div>
