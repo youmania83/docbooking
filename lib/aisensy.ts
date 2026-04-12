@@ -73,8 +73,8 @@ export async function sendOTPViaAiSensy(
     const formattedPhone = formatPhoneNumber(phone);
     const phoneWithoutPlus = formattedPhone.replace("+", "");
 
-    // Mock mode for local development (when can't reach API)
-    const useMockMode = process.env.AISENSY_MOCK_MODE === "true" || process.env.NODE_ENV === "development";
+    // Mock mode only if explicitly enabled
+    const useMockMode = process.env.AISENSY_MOCK_MODE === "true";
 
     if (useMockMode) {
       console.log(`[AiSensy] 🎭 MOCK MODE: Would send OTP "${otp}" to ${formattedPhone}`);
@@ -91,9 +91,13 @@ export async function sendOTPViaAiSensy(
       campaignName: process.env.AISENSY_CAMPAIGN_NAME,
       destination: phoneWithoutPlus,
       templateParams: [otp],
-      source: "new-landing-page",
+      source: "new-landing-page form",
+      userName: "docbooking",
       media: {},
-      userName: "DocBooking",
+      buttons: [],
+      carouselCards: [],
+      location: {},
+      attributes: {},
     };
 
     console.log(`[AiSensy] Sending OTP to ${formattedPhone}`);
