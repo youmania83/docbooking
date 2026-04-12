@@ -163,14 +163,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-    return NextResponse.json(
-      {
-        success: false,
-        message:
-          error.message || "Failed to process registration. Please try again.",
-      },
-      { status: 500 }
-    );
-  }
-}
