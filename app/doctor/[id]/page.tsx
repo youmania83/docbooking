@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, MapPin, Award, Loader, AlertCircle } from "lucide-react";
 import PatientDetailsForm, { PatientDetails } from "@/components/PatientDetailsForm";
 import BookingConfirmationModal from "@/components/BookingConfirmationModal";
-import OtpVerification from "@/components/OtpVerification";
+import OTPVerificationWhatsApp from "@/components/OTPVerificationWhatsApp";
 import AppointmentDateTimeSelector from "@/components/AppointmentDateTimeSelector";
 import StickyAppointmentCTA from "@/components/StickyAppointmentCTA";
 
@@ -323,7 +323,7 @@ export default function DoctorDetailPage() {
                   </div>
                 </div>
 
-                <OtpVerification onVerified={handleOtpVerified} />
+                <OTPVerificationWhatsApp onVerified={handleOtpVerified} />
               </div>
             ) : (
               // Patient Details Step
