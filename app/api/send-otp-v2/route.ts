@@ -75,11 +75,12 @@ export async function POST(request: NextRequest) {
     try {
       formattedPhone = formatPhone(phone);
     } catch (error) {
-      console.log(`[API] Invalid phone format: ${error.message}`);
+      const errorMsg = error instanceof Error ? error.message : 'Invalid phone number format';
+      console.log(`[API] Invalid phone format: ${errorMsg}`);
       return NextResponse.json(
         {
           success: false,
-          message: error.message || 'Invalid phone number format'
+          message: errorMsg
         },
         { status: 400 }
       );
@@ -138,7 +139,8 @@ export async function POST(request: NextRequest) {
     );
 
   } catch (error) {
-    console.error(`[API] Unexpected error:`, error);
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`[API] Unexpected error:`, errorMsg);
     return NextResponse.json(
       {
         success: false,

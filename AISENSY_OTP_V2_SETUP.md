@@ -29,7 +29,7 @@
  * 5. Copy the full JWT token (usually starts with "eyJ...")
  * 
  * Example API Key format:
- * eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZDdjZTYxZTVjNjQ0MGUxOTViYTNhMSIsIm5hbWUiOiJkb2Nib29raW5nIn0.***REMOVED***
+ * eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZDdjZTYxZTVjNjQ0MGUxOTViYTNhMSIsIm5hbWUiOiJkb2Nib29raW5nIn0.baDUeeGK_GwMKXXdiuTfBaGhX4jxpas3r6Kz5IJyzhA
  * 
  * IMPORTANT: Keep this key safe! It grants access to send messages.
  */
@@ -132,7 +132,7 @@ OTP_EXPIRY_SECONDS=300
 
 # AiSensy WhatsApp API Configuration (Campaign API v2)
 # Get API key from: https://www.aisensy.com → Settings → Manage → API Key
-AISENSY_API_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZDdjZTYxZTVjNjQ0MGUxOTViYTNhMSIsIm5hbWUiOiJkb2Nib29raW5nIn0.***REMOVED***
+AISENSY_API_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZDdjZTYxZTVjNjQ0MGUxOTViYTNhMSIsIm5hbWUiOiJkb2Nib29raW5nIn0.baDUeeGK_GwMKXXdiuTfBaGhX4jxpas3r6Kz5IJyzhA
 
 # Campaign name in AiSensy (must match exactly, case-sensitive)
 # Go to: AiSensy Dashboard → Campaigns → Your Campaign Name
