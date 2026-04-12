@@ -1,3 +1,6 @@
+// Import Sentry wrapper for error monitoring
+const { withSentryConfig } = require("@sentry/nextjs");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Turbopack configuration for proper root detection
@@ -32,4 +35,10 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+// Wrap config with Sentry
+module.exports = withSentryConfig(nextConfig, {
+  // Sentry options
+  silent: true, // Suppress Sentry output during build (cleaner logs)
+  org: process.env.SENTRY_ORG || "",
+  project: process.env.SENTRY_PROJECT || "",
+});

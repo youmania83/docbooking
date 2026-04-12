@@ -5,6 +5,7 @@
 
 import nodemailer from "nodemailer";
 import { NextResponse } from "next/server";
+import { captureError, captureWarning } from "./sentry-utils";
 
 // Email transporter cache
 let transporter: nodemailer.Transporter | null = null;
@@ -21,6 +22,10 @@ function getTransporter() {
     const errorMsg =
       "❌ Email credentials not configured. Please set GMAIL_USER and GMAIL_APP_PASSWORD in .env.local";
     console.error(errorMsg);
+    captureError(new Error("Email credentials missing"), {
+      gmail_user: user ? "set" : "missing",
+      gmail_password: pass ? "set" : "missing",
+    });
     throw new Error(errorMsg);
   }
 
@@ -59,6 +64,9 @@ export async function verifyEmailConfig(): Promise<boolean> {
       "[Email Service] ❌ Email configuration failed:",
       errorMsg
     );
+    captureError(new Error("Email config verification failed"), {
+      error: errorMsg,
+    });
     throw new Error(`Email config failed: ${errorMsg}`);
   }
 }
@@ -101,6 +109,12 @@ export async function sendEmail(payload: EmailPayload): Promise<void> {
         : "Unknown email sending error";
     console.error(`[Email Service] ❌ Failed to send email to ${payload.to}:`, errorMsg);
 
+    captureError(new Error(`Email sending failed to ${payload.to}`), {
+      recipient: payload.to,
+      subject: payload.subject,
+      error: errorMsg,
+    });
+
     // Re-throw with context
     throw new Error(
       `Failed to send email to ${payload.to}: ${errorMsg}`
@@ -136,11 +150,20 @@ export async function sendEmails(
     console.warn(
       `[Email Service] ⚠️  ${payloads.length - errors.length}/${payloads.length} emails sent successfully. ${errors.length} failed.`
     );
+    captureWarning(`Partial email batch failure: ${errors.length} of ${payloads.length} failed`, {
+      total: payloads.length,
+      failed: errors.length,
+      errors,
+    });
     return { success: true, errors }; // Partial success
   } else {
     console.error(
       `[Email Service] ❌ All ${payloads.length} emails failed`
     );
+    captureError(new Error(`All emails in batch failed`), {
+      total: payloads.length,
+      errors,
+    });
     return { success: false, errors };
   }
 }
@@ -161,6 +184,7 @@ export function getErrorResponse(
         : defaultMessage;
 
   console.error("[Email Service] Error response:", message);
+  captureError(new Error(message));
 
   return NextResponse.json(
     {

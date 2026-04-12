@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "../styles/globals.css";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { initSentry } from "@/lib/sentry-config";
+
+// Initialize Sentry on server
+initSentry();
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,7 +49,9 @@ export default function RootLayout({
             <p className="text-sm text-gray-600">Panipat, India</p>
           </div>
         </header>
-        <main className="flex-1">{children}</main>
+        <main className="flex-1">
+          <ErrorBoundary>{children}</ErrorBoundary>
+        </main>
       </body>
     </html>
   );
