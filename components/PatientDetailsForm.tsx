@@ -89,9 +89,11 @@ export default function PatientDetailsForm({
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-      <h2 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
-        <User size={24} className="text-blue-600" />
+    <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-8">
+      <h2 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+        <div className="bg-blue-100 rounded-lg p-2">
+          <User size={24} className="text-blue-600" />
+        </div>
         Patient Details
       </h2>
       <p className="text-gray-600 mb-8">
@@ -101,7 +103,7 @@ export default function PatientDetailsForm({
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Name Field */}
         <div>
-          <label htmlFor="name" className="block text-sm font-semibold text-gray-900 mb-2">
+          <label htmlFor="name" className="block text-sm font-semibold text-gray-900 mb-3">
             Full Name <span className="text-red-600">*</span>
           </label>
           <input
@@ -111,10 +113,10 @@ export default function PatientDetailsForm({
             value={formData.name}
             onChange={handleChange}
             placeholder="Enter your full name"
-            className={`w-full px-4 py-3 rounded-lg border-2 text-gray-900 placeholder-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            className={`w-full px-4 py-3.5 rounded-lg border-2 text-base text-gray-900 placeholder-gray-400 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               errors.name
                 ? "border-red-500 focus:border-red-500"
-                : "border-gray-200 hover:border-gray-300"
+                : "border-gray-200 hover:border-gray-300 focus:border-transparent"
             }`}
             disabled={isLoading}
           />
@@ -128,7 +130,7 @@ export default function PatientDetailsForm({
 
         {/* Age Field */}
         <div>
-          <label htmlFor="age" className="block text-sm font-semibold text-gray-900 mb-2">
+          <label htmlFor="age" className="block text-sm font-semibold text-gray-900 mb-3">
             Age <span className="text-red-600">*</span>
           </label>
           <input
@@ -140,10 +142,10 @@ export default function PatientDetailsForm({
             placeholder="Enter your age"
             min="1"
             max="150"
-            className={`w-full px-4 py-3 rounded-lg border-2 text-gray-900 placeholder-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            className={`w-full px-4 py-3.5 rounded-lg border-2 text-base text-gray-900 placeholder-gray-400 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               errors.age
                 ? "border-red-500 focus:border-red-500"
-                : "border-gray-200 hover:border-gray-300"
+                : "border-gray-200 hover:border-gray-300 focus:border-transparent"
             }`}
             disabled={isLoading}
           />
@@ -157,7 +159,7 @@ export default function PatientDetailsForm({
 
         {/* Gender Field */}
         <div>
-          <label htmlFor="gender" className="block text-sm font-semibold text-gray-900 mb-2">
+          <label htmlFor="gender" className="block text-sm font-semibold text-gray-900 mb-3">
             Gender <span className="text-red-600">*</span>
           </label>
           <select
@@ -165,10 +167,10 @@ export default function PatientDetailsForm({
             name="gender"
             value={formData.gender}
             onChange={handleChange}
-            className={`w-full px-4 py-3 rounded-lg border-2 text-gray-900 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            className={`w-full px-4 py-3.5 rounded-lg border-2 text-base text-gray-900 bg-white transition-all appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer ${
               errors.gender
                 ? "border-red-500 focus:border-red-500"
-                : "border-gray-200 hover:border-gray-300"
+                : "border-gray-200 hover:border-gray-300 focus:border-transparent"
             }`}
             disabled={isLoading}
           >
@@ -187,23 +189,25 @@ export default function PatientDetailsForm({
 
         {/* Mobile Number Field */}
         <div>
-          <label htmlFor="mobileNumber" className="block text-sm font-semibold text-gray-900 mb-2">
+          <label htmlFor="mobileNumber" className="block text-sm font-semibold text-gray-900 mb-3">
             Mobile Number <span className="text-red-600">*</span>
           </label>
           <div className="flex items-center gap-2">
-            <span className="text-gray-600 font-semibold">+91</span>
+            <span className="text-base font-semibold text-gray-600 bg-gray-50 px-4 py-3.5 rounded-lg border border-gray-200">
+              +91
+            </span>
             <input
               type="tel"
               id="mobileNumber"
               name="mobileNumber"
               value={formData.mobileNumber}
               onChange={handleChange}
-              placeholder="Enter 10-digit number"
+              placeholder="10-digit number"
               maxLength={10}
-              className={`flex-1 px-4 py-3 rounded-lg border-2 text-gray-900 placeholder-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`flex-1 px-4 py-3.5 rounded-lg border-2 text-base text-gray-900 placeholder-gray-400 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.mobileNumber
                   ? "border-red-500 focus:border-red-500"
-                  : "border-gray-200 hover:border-gray-300"
+                  : "border-gray-200 hover:border-gray-300 focus:border-transparent"
               }`}
               disabled={isLoading}
             />
@@ -220,10 +224,10 @@ export default function PatientDetailsForm({
         <button
           type="submit"
           disabled={isLoading}
-          className={`w-full py-4 px-6 rounded-xl font-semibold text-lg transition-all duration-200 ${
+          className={`w-full py-4 px-6 rounded-lg font-semibold text-base transition-all duration-200 mt-8 ${
             isLoading
               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-              : "bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl cursor-pointer"
+              : "bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg cursor-pointer active:bg-blue-800"
           }`}
         >
           {isLoading ? "Processing..." : "Proceed to Confirmation"}

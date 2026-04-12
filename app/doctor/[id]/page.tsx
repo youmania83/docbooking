@@ -8,6 +8,7 @@ import PatientDetailsForm, { PatientDetails } from "@/components/PatientDetailsF
 import BookingConfirmationModal from "@/components/BookingConfirmationModal";
 import OtpVerification from "@/components/OtpVerification";
 import AppointmentDateTimeSelector from "@/components/AppointmentDateTimeSelector";
+import StickyAppointmentCTA from "@/components/StickyAppointmentCTA";
 
 interface Doctor {
   _id: string;
@@ -127,12 +128,13 @@ export default function DoctorDetailPage() {
     setBookingStep("patient-details");
   };
 
-  const formattedDate = selectedDate
-    ? new Date(selectedDate).toLocaleDateString("en-IN", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
+  // Format selected date for display
+  const formattedDate = selectedDate 
+    ? new Date(selectedDate).toLocaleDateString('en-IN', { 
+        weekday: 'short', 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
       })
     : "Not selected";
 
@@ -150,7 +152,7 @@ export default function DoctorDetailPage() {
         <div className="grid lg:grid-cols-4 gap-8">
           {/* Doctor Info Card */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100 sticky top-24">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 sticky top-24">
               <div className="mb-6 text-center">
                 <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <span className="text-4xl font-bold text-blue-600">
@@ -213,7 +215,7 @@ export default function DoctorDetailPage() {
           </div>
 
           {/* Booking Section */}
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-3 pb-32 lg:pb-0">
             {bookingStep === "appointment-selection" ? (
               // Appointment Date and Time Selection
               <div>
@@ -228,7 +230,7 @@ export default function DoctorDetailPage() {
                 />
 
                 {/* Booking Summary */}
-                <div className="bg-gray-50 rounded-2xl p-6 mt-8 border border-gray-200">
+                <div className="bg-gray-50 rounded-lg p-6 mt-8 border border-gray-200">
                   <h3 className="font-semibold text-gray-900 mb-4 text-lg">
                     Booking Summary
                   </h3>
@@ -266,20 +268,20 @@ export default function DoctorDetailPage() {
                   </div>
                 </div>
 
-                {/* Confirm Booking Button */}
+                {/* Proceed Button */}
                 <button
                   onClick={handleConfirmBooking}
                   disabled={!selectedDate || !selectedTime}
                   className={`w-full mt-8 py-4 px-6 rounded-xl font-semibold text-lg transition-all duration-200 ${
                     selectedDate && selectedTime
-                      ? "bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl cursor-pointer"
+                      ? "bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl active:bg-blue-800"
                       : "bg-gray-300 text-gray-500 cursor-not-allowed"
                   }`}
                 >
-                  {selectedDate && selectedTime ? "Proceed to Verification" : "Select Date and Time"}
+                  {selectedDate && selectedTime ? "Proceed to Booking →" : "Select Date & Time"}
                 </button>
 
-                <p className="text-xs text-gray-500 text-center mt-6">
+                <p className="text-xs text-gray-500 text-center mt-4">
                   Proceed to verify your phone number and enter patient details
                 </p>
               </div>
@@ -388,6 +390,19 @@ export default function DoctorDetailPage() {
             onEdit={handleEditDetails}
             verifiedPhone={verifiedPhone}
           />
+        )}
+
+        {/* Sticky CTA Bar - Only visible on mobile/tablet for appointment-selection step */}
+        {bookingStep === "appointment-selection" && (
+          <div className="lg:hidden">
+            <StickyAppointmentCTA
+              doctorName={doctor.name}
+              opdFees={doctor.opdFees}
+              selectedDate={selectedDate}
+              selectedTime={selectedTime}
+              onProceed={handleConfirmBooking}
+            />
+          </div>
         )}
       </div>
     </div>

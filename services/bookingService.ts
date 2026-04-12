@@ -22,6 +22,9 @@ export async function createBooking(bookingData: {
   appointmentTime: string;
   slot?: string; // Legacy field for backward compatibility
   email?: string;
+  termsAccepted?: boolean;
+  termsAcceptedAt?: Date;
+  termsVersion?: string;
 }): Promise<any> {
   try {
     // Validate required fields
@@ -39,6 +42,11 @@ export async function createBooking(bookingData: {
       typeof bookingData.appointmentTime !== "string"
     ) {
       throw new ValidationError("Invalid or missing required fields.");
+    }
+
+    // Validate terms acceptance
+    if (!bookingData.termsAccepted) {
+      throw new ValidationError("You must accept terms and conditions to proceed.");
     }
 
     // Validate patient name
@@ -113,6 +121,9 @@ export async function createBooking(bookingData: {
       appointmentTime: bookingData.appointmentTime,
       slot: bookingData.slot || bookingData.appointmentTime, // Use appointmentTime as fallback for slot
       email: bookingData.email || undefined,
+      termsAccepted: bookingData.termsAccepted || false,
+      termsAcceptedAt: bookingData.termsAcceptedAt || new Date(),
+      termsVersion: bookingData.termsVersion || "1.0",
       status: "confirmed",
     });
 

@@ -9,6 +9,9 @@ export interface IBooking extends Document {
   appointmentDate: Date;
   appointmentTime: string;
   slot?: string; // Legacy field for backward compatibility
+  termsAccepted: boolean;
+  termsAcceptedAt?: Date;
+  termsVersion?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -46,6 +49,8 @@ const BookingSchema = new Schema<IBooking>(
     doctorId: {
       type: Schema.Types.ObjectId,
       ref: "Doctor",
+      required: [true, "Doctor ID is required"],
+    },
     appointmentDate: {
       type: Date,
       required: [true, "Appointment date is required"],
@@ -53,14 +58,28 @@ const BookingSchema = new Schema<IBooking>(
     appointmentTime: {
       type: String,
       required: [true, "Appointment time is required"],
-      match: [/^\d{2}:\d{2}\s(AM|PM)$/i, "Appointment time must be in HH:MM AM/PM format"],
-    },
-      required: [true, "Doctor ID is required"],
+      match: [
+        /^\d{2}:\d{2}\s(AM|PM)$/i,
+        "Appointment time must be in HH:MM AM/PM format",
+      ],
     },
     slot: {
       type: String,
       required: [true, "Slot is required"],
       trim: true,
+    },
+    termsAccepted: {
+      type: Boolean,
+      default: false,
+      required: [true, "Terms acceptance is required"],
+    },
+    termsAcceptedAt: {
+      type: Date,
+      default: null,
+    },
+    termsVersion: {
+      type: String,
+      default: "1.0",
     },
   },
   {

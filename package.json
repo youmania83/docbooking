@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/nodemailer": "^8.0.0",
     "autoprefixer": "^10.4.20",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -18,12 +19,14 @@
     "lucide-react": "^1.7.0",
     "mongoose": "^9.3.3",
     "next": "16.2.2",
+    "nodemailer": "^8.0.5",
     "postcss": "^8.4.41",
     "react": "19.2.4",
     "react-day-picker": "^9.14.0",
     "react-dom": "19.2.4",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4",
+    "vercel": "^50.44.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Phone, CheckCircle2, AlertCircle, Clock, Loader, Info } from "lucide-react";
+import Link from "next/link";
 
 interface OtpVerificationProps {
   onVerified: (phone: string) => void;
@@ -26,6 +27,8 @@ export default function OtpVerification({
   const [success, setSuccess] = useState("");
   const [showFallbackMessage, setShowFallbackMessage] = useState(false);
   const [verifyAttempts, setVerifyAttempts] = useState(0);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsError, setTermsError] = useState("");
 
   const isDevelopment = process.env.NODE_ENV === "development";
 
@@ -77,6 +80,12 @@ export default function OtpVerification({
     setOtp(value);
     setError("");
     setErrorCode(null);
+  };
+
+  // Handle terms checkbox
+  const handleTermsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTermsAccepted(e.target.checked);
+    setTermsError("");
   };
 
   // Get specific error message based on error type
@@ -154,11 +163,18 @@ export default function OtpVerification({
     e.preventDefault();
     setError("");
     setErrorCode(null);
+    setTermsError("");
 
     // Validate OTP
     if (otp.length !== 6) {
       setError("Please enter a 6-digit OTP.");
       setErrorCode("INVALID_FORMAT");
+      return;
+    }
+
+    // Validate terms acceptance
+    if (!termsAccepted) {
+      setTermsError("You must agree to Terms & Conditions and Privacy Policy to proceed.");
       return;
     }
 
@@ -172,7 +188,7 @@ export default function OtpVerification({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ phone, otp }),
+        body: JSON.stringify({ phone, otp, termsAccepted: true, termsAcceptedAt: new Date() }),
       });
 
       const data = await response.json();
@@ -391,6 +407,47 @@ export default function OtpVerification({
           </button>
         )}
 
+        {/* Legal Terms Checkbox - Only show after OTP is sent */}
+        {otpSent && (
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className={`rounded-lg p-4 border-2 ${termsError ? "border-red-200 bg-red-50" : "border-gray-200 bg-gray-50"}`}>
+              <div className="flex gap-3">
+                <input
+                  type="checkbox"
+                  id="terms"
+                  checked={termsAccepted}
+                  onChange={handleTermsChange}
+                  className="w-5 h-5 mt-0.5 accent-blue-600 cursor-pointer rounded flex-shrink-0"
+                />
+                <label htmlFor="terms" className="flex-1 cursor-pointer">
+                  <p className="text-sm text-gray-800">
+                    I agree to the{" "}
+                    <Link
+                      href="/terms-and-conditions"
+                      target="_blank"
+                      className="font-semibold text-blue-600 hover:underline"
+                    >
+                      Terms & Conditions
+                    </Link>
+                    {" "}and{" "}
+                    <Link
+                      href="/privacy-policy"
+                      target="_blank"
+                      className="font-semibold text-blue-600 hover:underline"
+                    >
+                      Privacy Policy
+                    </Link>
+                    <span className="text-red-600 ml-1">*</span>
+                  </p>
+                </label>
+              </div>
+              {termsError && (
+                <p className="text-xs text-red-600 ml-8 mt-2">{termsError}</p>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Primary Button */}
         <button
           type="submit"
@@ -398,7 +455,7 @@ export default function OtpVerification({
             loading ||
             verified ||
             (!otpSent && phone.length !== 10) ||
-            (otpSent && otp.length !== 6)
+            (otpSent && (otp.length !== 6 || !termsAccepted))
           }
           className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
