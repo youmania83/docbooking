@@ -39,6 +39,8 @@ const OTPVerificationForm: React.FC<{
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [countdown, setCountdown] = useState(0);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [resendCountdown, setResendCountdown] = useState(0);
 
   /**
    * Handle phone number input
@@ -111,12 +113,24 @@ const OTPVerificationForm: React.FC<{
       setSuccess("✓ OTP sent to your WhatsApp");
       setStep("otp");
       setCountdown(data.expiresIn || 300); // 5 minutes
+      setResendCountdown(30); // 30 seconds before resend
 
-      // Start countdown
+      // Start OTP expiry countdown
       const timer = setInterval(() => {
         setCountdown((prev) => {
           if (prev <= 1) {
             clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      // Start resend button cooldown
+      const resendTimer = setInterval(() => {
+        setResendCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(resendTimer);
             return 0;
           }
           return prev - 1;
@@ -144,6 +158,11 @@ const OTPVerificationForm: React.FC<{
       return;
     }
 
+    if (!termsAccepted) {
+      setError("Please accept Terms & Conditions to proceed");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -155,6 +174,7 @@ const OTPVerificationForm: React.FC<{
         body: JSON.stringify({
           phone: phone,
           otp: otp,
+          terms_accepted: termsAccepted,
         }),
       });
 
@@ -180,6 +200,7 @@ const OTPVerificationForm: React.FC<{
         setPhone("");
         setOtp("");
         setSuccess("");
+        setTermsAccepted(false);
       }, 2000);
     } catch (err) {
       setError("Verification failed. Please try again.");
@@ -196,6 +217,7 @@ const OTPVerificationForm: React.FC<{
     setError("");
     setSuccess("");
     setOtp("");
+    setTermsAccepted(false);
     await handleSendOTP(new Event("submit") as any);
   };
 
@@ -286,19 +308,54 @@ const OTPVerificationForm: React.FC<{
             <p className="text-sm text-gray-700">
               OTP expires in:{" "}
               <span className="font-bold text-blue-600">
-                {minutes}:{seconds.toString().padStart(2, "0")}
+                {Math.floor(countdown / 60)}:{(countdown % 60).toString().padStart(2, "0")}
               </span>
             </p>
           ) : (
             <p className="text-sm text-red-600 font-semibold">OTP expired</p>
           )}
 
+          {/* Terms & Conditions Checkbox */}
+          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                disabled={loading}
+                className="mt-1 w-4 h-4 accent-blue-600"
+              />
+              <div className="text-sm text-gray-700">
+                <p>
+                  I agree to the{" "}
+                  <a
+                    href="/terms-and-conditions"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline font-semibold"
+                  >
+                    Terms & Conditions
+                  </a>
+                  {" "}and{" "}
+                  <a
+                    href="/privacy-policy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline font-semibold"
+                  >
+                    Privacy Policy
+                  </a>
+                </p>
+              </div>
+            </label>
+          </div>
+
           <button
             type="submit"
-            disabled={loading || otp.length !== 6}
+            disabled={loading || otp.length !== 6 || !termsAccepted}
             className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold py-2 rounded-lg transition-colors"
           >
-            {loading ? "Verifying..." : "Verify OTP"}
+            {loading ? "Verifying..." : "Verify & Continue"}
           </button>
 
           <div className="flex gap-2">
@@ -308,6 +365,7 @@ const OTPVerificationForm: React.FC<{
                 setStep("phone");
                 setOtp("");
                 setCountdown(0);
+                setResendCountdown(0);
               }}
               className="flex-1 border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-2 rounded-lg transition-colors"
             >
@@ -316,10 +374,10 @@ const OTPVerificationForm: React.FC<{
             <button
               type="button"
               onClick={handleResendOTP}
-              disabled={loading || countdown > 250} // Can resend after 50 seconds
+              disabled={loading || resendCountdown > 0}
               className="flex-1 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white font-semibold py-2 rounded-lg transition-colors"
             >
-              {countdown > 250 ? "Wait..." : "Resend"}
+              {resendCountdown > 0 ? `Resend in ${resendCountdown}s` : "Resend OTP"}
             </button>
           </div>
         </form>

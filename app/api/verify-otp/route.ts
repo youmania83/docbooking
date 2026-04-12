@@ -1,13 +1,13 @@
 /**
  * POST /api/verify-otp
- * Verifies OTP sent via WhatsApp using WATI
+ * Verifies OTP sent via WhatsApp and validates terms acceptance
  * 
  * Request:
  * POST /api/verify-otp
- * { "phone": "+91XXXXXXXXXX" or "XXXXXXXXXX", "otp": "123456" }
+ * { "phone": "+91XXXXXXXXXX" or "XXXXXXXXXX", "otp": "123456", "terms_accepted": true }
  * 
  * Response:
- * { "success": true, "message": "OTP verified successfully" }
+ * { "success": true, "message": "OTP verified successfully", "verified": true }
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -25,7 +25,7 @@ import { handleError } from "@/lib/utils/errors";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { phone, otp } = body;
+    const { phone, otp, terms_accepted } = body;
 
     // Validation: Phone number required
     if (!phone || typeof phone !== "string") {
@@ -50,6 +50,15 @@ export async function POST(request: NextRequest) {
       return errorResponse(
         "OTP must be 6 digits",
         "INVALID_OTP_FORMAT",
+        400
+      );
+    }
+
+    // Validation: Terms accepted
+    if (terms_accepted !== true) {
+      return errorResponse(
+        "You must accept the Terms & Conditions to proceed",
+        "TERMS_NOT_ACCEPTED",
         400
       );
     }
