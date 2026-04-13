@@ -8,7 +8,7 @@ Go to **Vercel Dashboard** → **docbooking project** → **Settings** → **Env
 
 #### AiSensy WhatsApp API (Required for OTP)
 ```
-AISENSY_API_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZDdjZTYxZTVjNjQ0MGUxOTViYTNhMSIsIm5hbWUiOiJkb2Nib29raW5nIiwiYXBwTmFtZSI6IkFpU2Vuc3kiLCJjbGllbnRJZCI6IjY5ZDdjZTYxZTVjNjQ0MGUxOTViYTM5YyIsImFjdGl2ZVBsYW4iOiJGUkVFX0ZPUkVWRVIiLCJpYXQiOjE3NzU3NTA3NTN9.baDUeeGK_GwMKXXdiuTfBaGhX4jxpas3r6Kz5IJyzhA
+AISENSY_API_KEY=YOUR_AISENSY_API_KEY
 
 AISENSY_CAMPAIGN_NAME=docbooking_otp
 
@@ -19,28 +19,28 @@ AISENSY_MOCK_MODE=false
 
 #### MongoDB (Required for database)
 ```
-MONGODB_URI=mongodb+srv://admin:CYZl8mFfV9quxBMM@docbooking.1ejvbod.mongodb.net/docbooking?appName=Docbooking
+MONGODB_URI=YOUR_MONGODB_URI
 ```
 
 #### Admin Configuration
 ```
 ADMIN_EMAIL=info@docbooking.in
 
-ADMIN_PASSWORD=DocBookingSecure2026
+ADMIN_PASSWORD=YOUR_SECURE_PASSWORD
 ```
 
 #### Email Service (Gmail SMTP)
 ```
-GMAIL_USER=ykw6687@gmail.com
+GMAIL_USER=YOUR_GMAIL_ADDRESS
 
-GMAIL_APP_PASSWORD=qwxjmmrrseirzpaf
+GMAIL_APP_PASSWORD=YOUR_GMAIL_APP_PASSWORD
 ```
 
 #### Sentry Error Monitoring (Already configured)
 ```
-SENTRY_DSN=https://609e5f37d3281dbdef587fe33375e5a0@o4511207543865344.ingest.us.sentry.io/4511207547207680
+SENTRY_DSN=YOUR_SENTRY_DSN
 
-NEXT_PUBLIC_SENTRY_DSN=https://609e5f37d3281dbdef587fe33375e5a0@o4511207543865344.ingest.us.sentry.io/4511207547207680
+NEXT_PUBLIC_SENTRY_DSN=YOUR_SENTRY_DSN
 
 SENTRY_ORG=docbooking
 
@@ -49,7 +49,7 @@ SENTRY_PROJECT=docbooking
 
 #### WATI WhatsApp (Legacy - Keep for fallback)
 ```
-WATI_API_TOKEN=wati_f23cfa60-4030-4745-96b1-9ac891fbf39d.RQtRDFLtDTXqBoVQ2EnbB0-ojITF3gDSAk2rd3uIV82AtqtKsiGLYRm_JxJflb5QVjqTpC0uYCU980wJrGP1tS6HsqMbWTLKd3F2IdcBKU5KVAZRT9oVGVryfMdLv-o3
+WATI_API_TOKEN=YOUR_WATI_API_TOKEN
 
 WATI_BASE_URL=https://live-server.wati.io
 ```
@@ -174,8 +174,8 @@ Error: connect ENOTFOUND docbooking.1ejvbod.mongodb.net
 | `AISENSY_MOCK_MODE` | Boolean | `false` | ✅ Yes |
 | `MONGODB_URI` | URL | `mongodb+srv://...` | ✅ Yes |
 | `ADMIN_EMAIL` | Email | `info@docbooking.in` | ✅ Yes |
-| `GMAIL_USER` | Email | `ykw6687@gmail.com` | ✅ Yes |
-| `GMAIL_APP_PASSWORD` | String | `qwxjmmrrseirzpaf` | ✅ Yes |
+| `GMAIL_USER` | Email | `your-email@gmail.com` | ✅ Yes |
+| `GMAIL_APP_PASSWORD` | String | `your-app-password` | ✅ Yes |
 | `SENTRY_DSN` | URL | `https://...@sentry.io/...` | ⚠️ Recommended |
 | `NEXT_PUBLIC_SENTRY_DSN` | URL | Same as SENTRY_DSN | ⚠️ Recommended |
 
