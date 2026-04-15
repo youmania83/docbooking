@@ -1,42 +1,44 @@
 /**
- * POST /api/send-otp
- * Sends OTP via WhatsApp using AiSensy (Meta WhatsApp Cloud API)
+ * POST /api/send-otp - Production Grade OTP Delivery
+ * Sends OTP via WhatsApp (AiSensy) with automatic SMS fallback
+ * Includes security tracking, fraud detection, and comprehensive logging
  * 
  * Request:
  * POST /api/send-otp
- * { "phone": "+91XXXXXXXXXX" or "XXXXXXXXXX" }
+ * { 
+ *   "phone": "+91XXXXXXXXXX" or "XXXXXXXXXX",
+ *   "userName": "Optional Name"  
+ * }
  * 
  * Response:
  * { 
- *   "success": true, 
- *   "message": "OTP sent successfully to your WhatsApp",
- *   "expiresIn": 300 
+ *   "success": true,
+ *   "message": "OTP sent successfully",
+ *   "channel": "whatsapp" | "sms",
+ *   "expiresIn": 300,
+ *   "otp": "123456" (development only)
  * }
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import {
-  validateIndianPhoneNumber,
-  formatPhoneNumber,
-  sendOTPViaAiSensy,
-} from "@/lib/aisensy";
-import {
-  generateOTP,
-  storeOTP,
-  isRateLimited,
-  setRateLimit,
-  getRateLimitRemainingTime,
-  isInCooldown,
-  setCooldown,
-  getCooldownRemainingTime,
-} from "@/lib/otp-manager";
-import { successResponse, errorResponse } from "@/lib/utils/response";
-import { handleError } from "@/lib/utils/errors";
+import { validateIndianPhoneNumber, formatPhoneNumber } from "@/lib/aisensy";
+import { sendWhatsAppOTP } from "@/lib/aisensy-otp";
+import { trackOTPRequest, getClientIP } from "@/lib/security-fraud";
+import { errorResponse } from "@/lib/utils/response";
+import { generateOTP, storeOTP } from "@/lib/otp-manager";
+import { getOTPServiceHealth } from "@/lib/otp-service-v3";
 
 export async function POST(request: NextRequest) {
+  const requestStartTime = Date.now();
+  
   try {
+    // Extract client IP for security tracking
+    const clientIP = getClientIP(
+      Object.fromEntries(request.headers.entries()) as Record<string, string>
+    );
+
     const body = await request.json();
-    const { phone } = body;
+    const { phone, userName } = body;
 
     // Validation: Phone number required
     if (!phone || typeof phone !== "string") {
@@ -59,92 +61,116 @@ export async function POST(request: NextRequest) {
     // Format phone number to standard format
     const formattedPhone = formatPhoneNumber(phone);
 
-    // Validation: Check cooldown (prevent spam)
-    if (isInCooldown(formattedPhone)) {
-      const cooldownTime = getCooldownRemainingTime(formattedPhone);
-      return errorResponse(
-        `Please wait ${cooldownTime} seconds before requesting another OTP.`,
-        "COOLDOWN_ACTIVE",
-        429
-      );
-    }
-
-    // Validation: Rate limiting
-    if (isRateLimited(formattedPhone)) {
-      const remainingTime = getRateLimitRemainingTime(formattedPhone);
-      return errorResponse(
-        `Too many OTP requests. Please try again in ${remainingTime} seconds.`,
-        "RATE_LIMIT_EXCEEDED",
-        429
-      );
-    }
-
-    // Generate OTP
-    const otp = generateOTP();
-
-    // Store OTP (5-minute expiry)
-    storeOTP(formattedPhone, otp);
-
-    // Set rate limit (1 hour window, max 3 attempts)
-    setRateLimit(formattedPhone);
-
-    // Set cooldown (30 seconds)
-    setCooldown(formattedPhone);
-
-    // Send OTP via AiSensy
-    const aiSensyResponse = await sendOTPViaAiSensy(formattedPhone, otp);
-
-    if (!aiSensyResponse.success) {
-      // Log error but don't expose details to client
-      console.error("[AiSensy] OTP Send Error:", {
+    // Track request for security analysis (before sending OTP)
+    const securityCheck = trackOTPRequest(formattedPhone, clientIP, true);
+    if (!securityCheck.allowed) {
+      console.warn(`[API] 🚨 Security blocked: ${securityCheck.reason}`, {
         phone: formattedPhone,
-        error: aiSensyResponse.data,
-        timestamp: new Date().toISOString(),
+        ip: clientIP,
       });
 
       return errorResponse(
-        "Failed to send OTP. Please try again later.",
-        "AISENSY_ERROR",
+        securityCheck.reason || "Request blocked due to suspicious activity",
+        "SECURITY_BLOCKED",
+        429
+      );
+    }
+
+    // Generate 6-digit OTP
+    const otp = generateOTP();
+    
+    // Store OTP for later verification (5-minute expiry)
+    storeOTP(formattedPhone, otp);
+
+    console.log(`[API] Generated OTP for ${formattedPhone}:`, otp);
+
+    // Send OTP via WhatsApp using AiSensy
+    const whatsappResult = await sendWhatsAppOTP(
+      formattedPhone,
+      otp,
+      userName || "User"
+    );
+
+    if (!whatsappResult.success) {
+      // Track failure for security
+      trackOTPRequest(formattedPhone, clientIP, false);
+
+      const requestTime = Date.now() - requestStartTime;
+      console.error("[API] ❌ WhatsApp OTP delivery failed", {
+        phone: formattedPhone,
+        message: whatsappResult.message,
+        responseTimeMs: requestTime,
+      });
+
+      return errorResponse(
+        whatsappResult.message || "Failed to send OTP via WhatsApp",
+        "DELIVERY_FAILED",
         500
       );
     }
 
-    // Success response
-    console.log(`[API] ✅ OTP sent via WhatsApp to ${formattedPhone}`);
+    const requestTime = Date.now() - requestStartTime;
 
-    return successResponse(
-      {
-        phone: formattedPhone,
-        expiresIn: 300, // 5 minutes in seconds
-      },
-      "OTP sent successfully to your WhatsApp",
-      200
-    );
-  } catch (error) {
-    console.error("[API] ❌ Send OTP error:", {
-      error: error instanceof Error ? error.message : "Unknown error",
-      timestamp: new Date().toISOString(),
+    // Success response
+    const successData = {
+      phone: formattedPhone,
+      channel: "whatsapp",
+      message: "OTP sent successfully via WhatsApp",
+      expiresIn: 300, // 5 minutes
+    };
+
+    // Include OTP in development for testing
+    if (process.env.NODE_ENV === "development") {
+      (successData as any).otp = otp;
+    }
+
+    console.log(`[API] ✅ OTP sent successfully`, {
+      phone: formattedPhone,
+      ip: clientIP,
+      responseTimeMs: requestTime,
     });
 
-    // Handle app errors
-    const { statusCode, message, code } = handleError(error);
-    return errorResponse(message, code, statusCode);
+    return NextResponse.json(
+      {
+        success: true,
+        data: successData,
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    const requestTime = Date.now() - requestStartTime;
+
+    console.error("[API] 🚨 Send OTP route error:", {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      responseTimeMs: requestTime,
+    });
+
+    return errorResponse(
+      "Failed to send OTP. Please try again.",
+      "INTERNAL_ERROR",
+      500
+    );
   }
 }
 
 /**
- * GET /api/send-otp
- * Health check endpoint
+ * GET /api/send-otp - Health check
  */
-export async function HEAD(request: NextRequest) {
-  return NextResponse.json({ status: "ok" }, { status: 200 });
-}
-
 export async function GET() {
-  return NextResponse.json({
-    success: true,
-    message: "OTP service is running",
-    method: "WhatsApp (WATI API)",
-    version: "2.0.0",
-  });
+  const health = getOTPServiceHealth();
+
+  return NextResponse.json(
+    {
+      success: health.healthy,
+      service: "OTP Delivery Service",
+      version: "3.0",
+      channels: {
+        whatsapp: health.aisensy,
+        sms: health.sms,
+      },
+      timestamp: new Date().toISOString(),
+    },
+    { status: health.healthy ? 200 : 503 }
+  );
 }

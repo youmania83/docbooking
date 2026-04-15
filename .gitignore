@@ -74,3 +74,4 @@ ehthumbs.db
 
 # Optional eslint cache
 .eslintcache
+.env*.local

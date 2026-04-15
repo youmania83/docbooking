@@ -46,11 +46,13 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { generateSessionToken } from '@/lib/session-token';
 
 // Import OTP functions from lib
 const {
   formatPhone,
-  verifyOTP
+  verifyOTP,
+  getStoreDebugInfo
 } = require('@/lib/aisensyOTPv2');
 
 export async function POST(request: NextRequest) {
@@ -102,16 +104,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log(`[API] /api/verify-otp-v2 store state before verify`, getStoreDebugInfo());
+
     // Verify OTP
     const result = verifyOTP(formattedPhone, otp);
 
     if (result.success) {
-      // Success
+      // Generate session token for subsequent booking API calls
+      const sessionToken = generateSessionToken(phone);
       console.log(`[API] OTP verified successfully for ${formattedPhone}`);
       return NextResponse.json(
         {
           success: true,
-          message: result.message
+          message: result.message,
+          sessionToken,
         },
         { status: 200 }
       );
@@ -130,6 +136,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
+          reason: result.reason || 'VERIFICATION_FAILED',
           message: result.message
         },
         { status: statusCode }

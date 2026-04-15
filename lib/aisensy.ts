@@ -90,15 +90,35 @@ export async function sendOTPViaAiSensy(
       apiKey: process.env.AISENSY_API_KEY,
       campaignName: process.env.AISENSY_CAMPAIGN_NAME,
       destination: phoneWithoutPlus,
-      templateParams: [otp],
-      source: "new-landing-page form",
       userName: "docbooking",
-      media: {},
-      buttons: [],
-      carouselCards: [],
-      location: {},
-      attributes: {},
+      template_name: "docbooking_otp_basic",
+      language: "en",
+      components: [
+        {
+          type: "body",
+          parameters: [
+            {
+              type: "text",
+              text: otp,
+            },
+          ],
+        },
+        {
+          type: "button",
+          sub_type: "copy_code",
+          index: 0,
+          parameters: [
+            {
+              type: "text",
+              text: otp,
+            },
+          ],
+        },
+      ],
     };
+
+    // Log the full payload for debugging
+    console.log(`[AiSensy] Full payload being sent:`, JSON.stringify(payload, null, 2));
 
     console.log(`[AiSensy] Sending OTP to ${formattedPhone}`);
 
@@ -112,11 +132,19 @@ export async function sendOTPViaAiSensy(
 
     const data = await response.json();
 
+    // Log full API response for debugging
+    console.log(`[AiSensy] API Response Status: ${response.status}`, {
+      ok: response.ok,
+      headers: Object.fromEntries(response.headers.entries()),
+      body: data,
+    });
+
     if (!response.ok) {
       console.error("[AiSensy] API Error:", {
         status: response.status,
         error: data,
         phone: formattedPhone,
+        payload: payload, // Log payload for debugging template issues
       });
 
       return {
@@ -127,7 +155,10 @@ export async function sendOTPViaAiSensy(
     }
 
     // Log successful send
-    console.log(`[AiSensy] ✓ OTP sent to ${formattedPhone}`);
+    console.log(`[AiSensy] ✅ OTP sent successfully to ${formattedPhone}`, {
+      phone: formattedPhone,
+      apiResponse: data,
+    });
 
     return {
       success: true,

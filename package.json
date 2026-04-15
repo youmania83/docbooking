@@ -12,6 +12,7 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "node scripts/seed.js",
+    "reset-db": "node scripts/reset-and-seed.js",
     "safe-install": "npm ci"
   },
   "dependencies": {

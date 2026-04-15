@@ -1,7 +1,10 @@
+import crypto from "crypto";
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IDoctor extends Document {
+  uid: string;
   name: string;
+  clinicName: string;
   qualification: string;
   experience: string;
   address: string;
@@ -16,10 +19,22 @@ export interface IDoctor extends Document {
 
 const DoctorSchema = new Schema<IDoctor>(
   {
+    uid: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+      default: () => crypto.randomUUID(),
+    },
     name: {
       type: String,
       required: [true, "Please provide a doctor name"],
       trim: true,
+    },
+    clinicName: {
+      type: String,
+      trim: true,
+      default: "",
     },
     qualification: {
       type: String,

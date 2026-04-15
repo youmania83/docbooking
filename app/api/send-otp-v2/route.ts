@@ -46,14 +46,19 @@ const {
   recordRequest,
   sendWhatsAppOTP,
   storeOTP,
+  clearOTP,
+  beginSendAttempt,
+  endSendAttempt,
+  markOTPDelivered,
+  getStoreDebugInfo,
   OTP_EXPIRY_SECONDS
 } = require('@/lib/aisensyOTPv2');
 
 export async function POST(request: NextRequest) {
-  try {
-    // Log incoming request
-    console.log(`[API] POST /api/send-otp-v2`);
+  let formattedPhone;
+  let sendLock;
 
+  try {
     // Parse request body
     const body = await request.json();
     const { phone, userName } = body;
@@ -71,7 +76,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Format and validate phone number
-    let formattedPhone;
     try {
       formattedPhone = formatPhone(phone);
     } catch (error) {
@@ -83,6 +87,19 @@ export async function POST(request: NextRequest) {
           message: errorMsg
         },
         { status: 400 }
+      );
+    }
+
+    console.log(`[API] /api/send-otp-v2 store state before send`, getStoreDebugInfo());
+
+    sendLock = beginSendAttempt(formattedPhone);
+    if (!sendLock.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'OTP request already in progress. Please wait a moment and try again.'
+        },
+        { status: 429 }
       );
     }
 
@@ -101,8 +118,11 @@ export async function POST(request: NextRequest) {
     // Generate OTP
     const otp = generateOTP();
 
-    // Store OTP (in-memory, will expire after OTP_EXPIRY_SECONDS)
-    storeOTP(formattedPhone, otp);
+    // Store OTP immediately in pending state so rapid resend/verify uses one canonical active record.
+    storeOTP(formattedPhone, otp, {
+      status: 'pending_delivery',
+      requestId: sendLock.requestId
+    });
 
     // Record this request for rate limiting
     recordRequest(formattedPhone);
@@ -116,7 +136,7 @@ export async function POST(request: NextRequest) {
 
     if (!aiSensyResult.success) {
       console.log(`[API] AiSensy failed: ${aiSensyResult.error}`);
-      // If WhatsApp send failed, we should clean up the stored OTP
+      clearOTP(formattedPhone);
       return NextResponse.json(
         {
           success: false,
@@ -125,6 +145,8 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    markOTPDelivered(formattedPhone, sendLock.requestId);
 
     // Success
     console.log(`[API] OTP sent successfully to ${formattedPhone}`);
@@ -148,5 +170,9 @@ export async function POST(request: NextRequest) {
       },
       { status: 500 }
     );
+  } finally {
+    if (formattedPhone && sendLock?.requestId) {
+      endSendAttempt(formattedPhone, sendLock.requestId);
+    }
   }
 }

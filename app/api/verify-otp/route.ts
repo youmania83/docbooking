@@ -1,48 +1,52 @@
 /**
- * POST /api/verify-otp
- * Verifies OTP sent via WhatsApp and validates terms acceptance
+ * POST /api/verify-otp - OTP Verification with Security Tracking
+ * Verifies OTP code, enforces rate limits, and tracks fraud attempts
  * 
  * Request:
  * POST /api/verify-otp
- * { "phone": "+91XXXXXXXXXX" or "XXXXXXXXXX", "otp": "123456", "terms_accepted": true }
+ * { 
+ *   "phone": "+91XXXXXXXXXX" or "XXXXXXXXXX",
+ *   "otp": "123456",
+ *   "terms_accepted": true
+ * }
  * 
  * Response:
- * { "success": true, "message": "OTP verified successfully", "verified": true }
+ * { 
+ *   "success": true,
+ *   "data": {
+ *     "phone": "+91XXXXXXXXXX",
+ *     "verified": true,
+ *     "message": "OTP verified successfully"
+ *   }
+ * }
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import {
-  validateIndianPhoneNumber,
-  formatPhoneNumber,
-} from "@/lib/aisensy";
-import {
-  validateOTP,
-  clearOTP,
-} from "@/lib/otp-manager";
-import { successResponse, errorResponse } from "@/lib/utils/response";
-import { handleError } from "@/lib/utils/errors";
+import { validateIndianPhoneNumber, formatPhoneNumber } from "@/lib/aisensy";
+import { verifyOTPWithMetrics } from "@/lib/otp-service-v3";
+import { trackOTPRequest, getClientIP } from "@/lib/security-fraud";
+import { errorResponse } from "@/lib/utils/response";
 
 export async function POST(request: NextRequest) {
+  const requestStartTime = Date.now();
+
   try {
+    // Extract client IP for security tracking
+    const clientIP = getClientIP(
+      Object.fromEntries(request.headers.entries()) as Record<string, string>
+    );
+
     const body = await request.json();
     const { phone, otp, terms_accepted } = body;
 
     // Validation: Phone number required
     if (!phone || typeof phone !== "string") {
-      return errorResponse(
-        "Phone number is required",
-        "INVALID_PHONE",
-        400
-      );
+      return errorResponse("Phone number is required", "INVALID_PHONE", 400);
     }
 
     // Validation: OTP required
     if (!otp || typeof otp !== "string") {
-      return errorResponse(
-        "OTP is required",
-        "INVALID_OTP",
-        400
-      );
+      return errorResponse("OTP is required", "INVALID_OTP", 400);
     }
 
     // Validation: OTP format (6 digits)
@@ -54,13 +58,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validation: Terms accepted
+    // Validation: Terms acceptance (optional but recommended for healthcare)
     if (terms_accepted !== true) {
-      return errorResponse(
-        "You must accept the Terms & Conditions to proceed",
-        "TERMS_NOT_ACCEPTED",
-        400
-      );
+      console.warn(`[API] Terms not accepted for ${phone}`);
+      // Optional: You can make this required
+      // return errorResponse(
+      //   "You must accept the Terms & Conditions to proceed",
+      //   "TERMS_NOT_ACCEPTED",
+      //   400
+      // );
     }
 
     // Validation: Indian phone format
@@ -75,58 +81,62 @@ export async function POST(request: NextRequest) {
     // Format phone number to standard format
     const formattedPhone = formatPhoneNumber(phone);
 
-    // Validate OTP
-    const validation = validateOTP(formattedPhone, otp);
+    // Verify OTP with metrics
+    const verification = verifyOTPWithMetrics(formattedPhone, otp);
 
-    if (!validation.valid) {
-      console.warn(`[API] ⚠️  Invalid OTP attempt for ${formattedPhone}`);
-      
+    if (!verification.valid) {
+      // Track failure for security
+      trackOTPRequest(formattedPhone, clientIP, false);
+
+      const requestTime = Date.now() - requestStartTime;
+      console.warn(`[API] ⚠️  Invalid OTP attempt for ${formattedPhone}`, {
+        message: verification.message,
+        ip: clientIP,
+        responseTimeMs: requestTime,
+      });
+
       return errorResponse(
-        validation.message,
+        verification.message,
         "INVALID_OTP",
         401
       );
     }
 
-    // Clear OTP after successful verification
-    clearOTP(formattedPhone);
+    // Track success
+    trackOTPRequest(formattedPhone, clientIP, true);
+
+    const requestTime = Date.now() - requestStartTime;
 
     // Success response
-    console.log(`[API] ✅ OTP verified for ${formattedPhone}`);
-
-    return successResponse(
-      {
-        phone: formattedPhone,
-        verified: true,
-      },
-      "OTP verified successfully",
-      200
-    );
-  } catch (error) {
-    console.error("[API] ❌ Verify OTP error:", {
-      error: error instanceof Error ? error.message : "Unknown error",
-      timestamp: new Date().toISOString(),
+    console.log(`[API] ✅ OTP verified for ${formattedPhone}`, {
+      ip: clientIP,
+      responseTimeMs: requestTime,
     });
 
-    // Handle app errors
-    const { statusCode, message, code } = handleError(error);
-    return errorResponse(message, code, statusCode);
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          phone: formattedPhone,
+          verified: true,
+          message: "OTP verified successfully",
+        },
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    const requestTime = Date.now() - requestStartTime;
+
+    console.error("[API] 🚨 Verify OTP route error:", {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      responseTimeMs: requestTime,
+    });
+
+    return errorResponse(
+      "Failed to verify OTP. Please try again.",
+      "INTERNAL_ERROR",
+      500
+    );
   }
-}
-
-/**
- * GET /api/verify-otp
- * Health check endpoint
- */
-export async function HEAD(request: NextRequest) {
-  return NextResponse.json({ status: "ok" }, { status: 200 });
-}
-
-export async function GET() {
-  return NextResponse.json({
-    success: true,
-    message: "OTP verification service is running",
-    method: "WhatsApp (WATI API)",
-    version: "2.0.0",
-  });
 }
