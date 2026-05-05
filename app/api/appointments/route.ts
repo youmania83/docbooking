@@ -158,6 +158,19 @@ export async function POST(request: NextRequest) {
       return fail("appointmentTime must be in H:MM AM/PM format (e.g. 9:00 AM)", 400, "INVALID_TIME");
     }
 
+    // 6a. Validate patient name — letters, spaces, hyphens, apostrophes, dots only
+    const trimmedName = patientName.trim();
+    if (trimmedName.length < 2 || trimmedName.length > 60) {
+      return fail("Patient name must be between 2 and 60 characters.", 400, "INVALID_NAME");
+    }
+    if (!/^[A-Za-z\s.'-]+$/.test(trimmedName)) {
+      return fail(
+        "Patient name can only contain letters, spaces, hyphens, apostrophes and dots.",
+        400,
+        "INVALID_NAME"
+      );
+    }
+
     // 7. Normalise date (midnight UTC = date-only key)
     let dateOnly: Date;
     try {

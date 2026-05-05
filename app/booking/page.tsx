@@ -1,7 +1,32 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+
+/** Parse "9:00 AM" / "5:00 PM" → minutes from midnight. Null on bad input. */
+function slotToMinutes(slot: string): number | null {
+  const m = slot.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!m) return null;
+  let h = parseInt(m[1], 10);
+  const min = parseInt(m[2], 10);
+  const mer = m[3].toUpperCase();
+  if (mer === 'PM' && h !== 12) h += 12;
+  if (mer === 'AM' && h === 12) h = 0;
+  return h * 60 + min;
+}
+
+/** Today's date string (YYYY-MM-DD) in IST, regardless of browser/server TZ. */
+function istTodayStr(): string {
+  const istMs = Date.now() + 5.5 * 60 * 60 * 1000;
+  const d = new Date(istMs);
+  const y = d.getUTCFullYear();
+  const mo = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${y}-${mo}-${day}`;
+}
+
+/** Minimum minutes in the future a slot must be to remain selectable. */
+const SLOT_LEAD_TIME_MINUTES = 15;
 
 // ── Single test doctor (seeded in DB) ──────────────────────────────────────
 const DOCTOR = {
@@ -53,10 +78,41 @@ export default function BookingPage() {
   const [confirmed, setConfirmed] = useState<BookingResult | null>(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
 
-  // Today's date in YYYY-MM-DD for min date
-  const today = new Date().toISOString().split('T')[0];
-  // 30 days from now for max date
-  const maxDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  // Today's date in IST (YYYY-MM-DD) — prevents booking yesterday after midnight IST
+  const today = istTodayStr();
+  // 30 days from now for max date (IST)
+  const maxDate = (() => {
+    const istMs = Date.now() + 5.5 * 60 * 60 * 1000 + 30 * 24 * 60 * 60 * 1000;
+    const d = new Date(istMs);
+    const y = d.getUTCFullYear();
+    const mo = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    return `${y}-${mo}-${day}`;
+  })();
+
+  // Re-render every minute so past slots update as the clock advances.
+  const [nowTick, setNowTick] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNowTick(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Minimum slot minutes for today (now+lead). 0 for future dates.
+  const earliestSlotMinutes = useMemo(() => {
+    if (appointmentDate !== today) return 0;
+    const istMs = nowTick + 5.5 * 60 * 60 * 1000;
+    const ist = new Date(istMs);
+    return ist.getUTCHours() * 60 + ist.getUTCMinutes() + SLOT_LEAD_TIME_MINUTES;
+  }, [appointmentDate, today, nowTick]);
+
+  // Auto-deselect slot if it's now in the past.
+  useEffect(() => {
+    if (!appointmentTime) return;
+    const mins = slotToMinutes(appointmentTime);
+    if (mins !== null && mins < earliestSlotMinutes) {
+      setAppointmentTime('');
+    }
+  }, [appointmentTime, earliestSlotMinutes]);
 
   // ── Step 1: Send OTP ──────────────────────────────────────────────────────
   const handleSendOTP = async (e: React.FormEvent) => {
@@ -197,7 +253,17 @@ export default function BookingPage() {
                 type="text"
                 placeholder="e.g. Rahul Sharma"
                 value={userName}
-                onChange={(e) => setUserName(e.target.value.trimStart())}
+                onChange={(e) => {
+                  // Allow only letters, spaces, hyphens, apostrophes, dots
+                  const cleaned = e.target.value.replace(/[^A-Za-z\s.'-]/g, '');
+                  // Collapse multiple spaces and trim leading whitespace
+                  setUserName(cleaned.replace(/\s{2,}/g, ' ').trimStart());
+                }}
+                pattern="[A-Za-z\s.'\-]{2,}"
+                title="Name can only contain letters, spaces, hyphens, apostrophes and dots"
+                minLength={2}
+                maxLength={60}
+                autoComplete="name"
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 required
               />
@@ -317,21 +383,34 @@ export default function BookingPage() {
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Time Slot</label>
               <div className="grid grid-cols-3 gap-2">
-                {DOCTOR.slots.map((slot) => (
-                  <button
-                    key={slot}
-                    type="button"
-                    onClick={() => setAppointmentTime(slot)}
-                    className={`py-2 px-1 text-sm rounded-lg border font-medium transition ${
-                      appointmentTime === slot
-                        ? 'bg-indigo-600 text-white border-indigo-600'
-                        : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-400'
-                    }`}
-                  >
-                    {slot}
-                  </button>
-                ))}
+                {DOCTOR.slots.map((slot) => {
+                  const mins = slotToMinutes(slot);
+                  const disabled = mins !== null && mins < earliestSlotMinutes;
+                  return (
+                    <button
+                      key={slot}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => !disabled && setAppointmentTime(slot)}
+                      title={disabled ? 'This slot is in the past' : undefined}
+                      className={`py-2 px-1 text-sm rounded-lg border font-medium transition ${
+                        disabled
+                          ? 'bg-gray-100 text-gray-400 border-gray-200 line-through cursor-not-allowed opacity-60'
+                          : appointmentTime === slot
+                          ? 'bg-indigo-600 text-white border-indigo-600'
+                          : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-400'
+                      }`}
+                    >
+                      {slot}
+                    </button>
+                  );
+                })}
               </div>
+              {appointmentDate === today && (
+                <p className="text-xs text-gray-500 mt-2">
+                  Past time slots for today are disabled.
+                </p>
+              )}
             </div>
 
             <button
