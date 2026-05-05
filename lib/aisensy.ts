@@ -91,7 +91,7 @@ export async function sendOTPViaAiSensy(
       campaignName: process.env.AISENSY_CAMPAIGN_NAME,
       destination: phoneWithoutPlus,
       userName: "docbooking",
-      template_name: "docbooking_otp_basic",
+      template_name: "app_verification_code",
       language: "en",
       components: [
         {

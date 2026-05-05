@@ -53,6 +53,40 @@ function toDateOnly(dateStr: string): Date {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
 }
 
+/**
+ * Convert "H:MM AM/PM" → minutes from midnight. Returns null on malformed input.
+ */
+function parseSlotToMinutes(slot: string): number | null {
+  const m = slot.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!m) return null;
+  let hours = parseInt(m[1], 10);
+  const minutes = parseInt(m[2], 10);
+  const meridian = m[3].toUpperCase();
+  if (meridian === "PM" && hours !== 12) hours += 12;
+  if (meridian === "AM" && hours === 12) hours = 0;
+  return hours * 60 + minutes;
+}
+
+/**
+ * Returns current time in IST as minutes from midnight and today's IST date
+ * in YYYY-MM-DD form. Server TZ-independent (works on Vercel UTC).
+ */
+function nowInIST(): { dateStr: string; minutes: number } {
+  const nowUTC = Date.now();
+  const istMs = nowUTC + 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
+  const ist = new Date(istMs);
+  const y = ist.getUTCFullYear();
+  const mo = String(ist.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(ist.getUTCDate()).padStart(2, "0");
+  return {
+    dateStr: `${y}-${mo}-${d}`,
+    minutes: ist.getUTCHours() * 60 + ist.getUTCMinutes(),
+  };
+}
+
+/** Minimum lead time (minutes) a slot must be in the future. Mirrors client. */
+const SLOT_LEAD_TIME_MINUTES = 15;
+
 function formatDateForTemplate(d: Date): string {
   return d.toLocaleDateString("en-IN", {
     day: "2-digit",
@@ -130,6 +164,30 @@ export async function POST(request: NextRequest) {
       dateOnly = toDateOnly(appointmentDate);
     } catch {
       return fail("Invalid appointmentDate", 400, "INVALID_DATE");
+    }
+
+    // 7a. Reject past dates and past time slots (IST-aware).
+    //     Validates against "now in Asia/Kolkata" regardless of server TZ.
+    const now = nowInIST();
+    if (appointmentDate.trim() < now.dateStr) {
+      return fail(
+        "Appointment date is in the past. Please select a future date.",
+        400,
+        "PAST_DATE"
+      );
+    }
+    if (appointmentDate.trim() === now.dateStr) {
+      const slotMinutes = parseSlotToMinutes(appointmentTime);
+      if (slotMinutes === null) {
+        return fail("Invalid appointmentTime", 400, "INVALID_TIME");
+      }
+      if (slotMinutes < now.minutes + SLOT_LEAD_TIME_MINUTES) {
+        return fail(
+          "This time slot is in the past. Please pick a future slot.",
+          400,
+          "PAST_SLOT"
+        );
+      }
     }
 
     await connectDB();

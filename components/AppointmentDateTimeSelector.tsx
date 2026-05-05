@@ -1,10 +1,28 @@
 "use client"
 
-import { useState, useCallback, useMemo } from "react"
+import { useState, useCallback, useMemo, useEffect } from "react"
 import { Calendar as CalendarIcon, Clock, AlertCircle, CheckCircle } from "lucide-react"
 import { format, addDays, isToday, isBefore, startOfDay } from "date-fns"
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
+
+/**
+ * Parse a slot label like "09:00 AM" or "5:00 PM" into minutes-from-midnight.
+ * Returns null on malformed input.
+ */
+function slotToMinutes(slot: string): number | null {
+  const match = slot.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i)
+  if (!match) return null
+  let hours = parseInt(match[1], 10)
+  const minutes = parseInt(match[2], 10)
+  const meridian = match[3].toUpperCase()
+  if (meridian === "PM" && hours !== 12) hours += 12
+  if (meridian === "AM" && hours === 12) hours = 0
+  return hours * 60 + minutes
+}
+
+/** Minimum minutes in the future a slot must be to remain selectable. */
+const SLOT_LEAD_TIME_MINUTES = 15
 
 interface TimeSlot {
   time: string
@@ -57,18 +75,47 @@ export default function AppointmentDateTimeSelector({
 }: AppointmentDateTimeSelectorProps) {
   const [internalSelectedDate, setInternalSelectedDate] = useState<Date | null>(selectedDate)
 
+  // Re-render every minute so slot availability stays in sync with the clock.
+  const [nowTick, setNowTick] = useState(() => Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setNowTick(Date.now()), 60_000)
+    return () => clearInterval(id)
+  }, [])
+
   // Calculate disabled dates
   const disabledDates = useCallback((date: Date) => {
     const today = startOfDay(new Date())
     const minDate = addDays(today, minDaysFromNow)
     const maxDate = addDays(today, maxDaysFromNow)
 
-    return (
-      isBefore(date, minDate) ||
-      isBefore(maxDate, date) ||
-      (minDaysFromNow === 0 && isToday(date) && minDaysFromNow === 0)
-    )
+    return isBefore(date, minDate) || isBefore(maxDate, date)
   }, [minDaysFromNow, maxDaysFromNow])
+
+  // Earliest bookable time (in minutes from midnight) for the selected date.
+  // For today, it's "now + lead time". For future dates, zero (all slots allowed).
+  const earliestSlotMinutes = useMemo(() => {
+    if (!internalSelectedDate) return 0
+    if (!isToday(internalSelectedDate)) return 0
+    const now = new Date(nowTick)
+    return now.getHours() * 60 + now.getMinutes() + SLOT_LEAD_TIME_MINUTES
+  }, [internalSelectedDate, nowTick])
+
+  const isSlotDisabled = useCallback(
+    (slot: string) => {
+      const mins = slotToMinutes(slot)
+      if (mins === null) return false
+      return mins < earliestSlotMinutes
+    },
+    [earliestSlotMinutes]
+  )
+
+  // If the user already picked a slot that is now in the past (e.g., they
+  // lingered on the page past the lead time), unselect it.
+  useEffect(() => {
+    if (selectedTime && isSlotDisabled(selectedTime)) {
+      onSelectionChange(internalSelectedDate, null)
+    }
+  }, [selectedTime, isSlotDisabled, internalSelectedDate, onSelectionChange])
 
   // Handle date selection
   const handleDateSelect = useCallback(
@@ -174,25 +221,42 @@ export default function AppointmentDateTimeSelector({
               ))}
             </div>
           ) : (
+            <>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-              {availableSlots.map((slot) => (
-                <button
-                  key={slot}
-                  onClick={() => handleTimeSelect(slot)}
-                  className={cn(
-                    "py-3 px-3 rounded-lg font-semibold transition-all duration-200 border-2 text-center text-sm sm:text-base",
-                    "hover:shadow-md active:scale-95",
-                    selectedTime === slot
-                      ? "bg-blue-600 text-white border-blue-600 shadow-lg ring-2 ring-blue-300"
-                      : "bg-white text-gray-900 border-gray-200 hover:border-blue-400 hover:bg-blue-50"
-                  )}
-                  aria-pressed={selectedTime === slot}
-                  aria-label={`Select ${slot}`}
-                >
-                  {slot}
-                </button>
-              ))}
+              {availableSlots.map((slot) => {
+                const disabled = isSlotDisabled(slot)
+                return (
+                  <button
+                    key={slot}
+                    onClick={() => !disabled && handleTimeSelect(slot)}
+                    disabled={disabled}
+                    className={cn(
+                      "py-3 px-3 rounded-lg font-semibold transition-all duration-200 border-2 text-center text-sm sm:text-base",
+                      disabled
+                        ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed line-through opacity-60"
+                        : "hover:shadow-md active:scale-95",
+                      !disabled && selectedTime === slot
+                        ? "bg-blue-600 text-white border-blue-600 shadow-lg ring-2 ring-blue-300"
+                        : !disabled
+                        ? "bg-white text-gray-900 border-gray-200 hover:border-blue-400 hover:bg-blue-50"
+                        : ""
+                    )}
+                    aria-pressed={selectedTime === slot}
+                    aria-disabled={disabled}
+                    aria-label={disabled ? `${slot} (unavailable, past time)` : `Select ${slot}`}
+                    title={disabled ? "This slot is in the past" : undefined}
+                  >
+                    {slot}
+                  </button>
+                )
+              })}
             </div>
+            {isToday(internalSelectedDate as Date) && (
+              <p className="text-xs text-gray-500 mb-4">
+                Past time slots for today are disabled. Select a future time or another date.
+              </p>
+            )}
+            </>
           )}
 
           {/* Selected Time Display */}

@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "../styles/globals.css";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { initSentry } from "@/lib/sentry-config";
+import JsonLdSchema from "@/components/JsonLdSchema";
+import { SITE_URL } from "@/lib/seo-data";
 
 // Initialize Sentry on server
 initSentry();
@@ -21,6 +23,19 @@ export const metadata: Metadata = {
   title: "DocBooking.in - Book Doctor Appointments in Panipat",
   description:
     "Skip OPD Queues in Panipat - Book doctor appointments instantly and avoid long waiting times",
+  metadataBase: new URL(SITE_URL),
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_IN",
+    url: SITE_URL,
+    siteName: "DocBooking",
+    title: "DocBooking.in - Book Doctor Appointments in Panipat",
+    description:
+      "Skip OPD Queues in Panipat - Book doctor appointments instantly and avoid long waiting times",
+  },
   icons: {
     icon: "/logos/favicon.svg",
   },
@@ -36,6 +51,9 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <JsonLdSchema page="home" includeFaq={true} />
+      </head>
       <body className="min-h-screen flex flex-col bg-gray-50">
         <header className="bg-white shadow-sm sticky top-0 z-40">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">

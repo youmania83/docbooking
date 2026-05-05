@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Mail, Heart, Stethoscope } from "lucide-react";
 import { useState } from "react";
+import { motion } from "framer-motion";
 
 export default function ComingSoonPage() {
   const [email, setEmail] = useState("");
@@ -85,59 +87,92 @@ export default function ComingSoonPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* HERO SECTION - BLUE */}
-      <section className="bg-blue-600 text-white py-32">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-8">
-          {/* Logo */}
-          <div className="flex justify-center">
-            <div className="bg-white bg-opacity-20 px-4 py-2 rounded-full">
-              <p className="text-sm font-semibold">Coming Soon</p>
-            </div>
-          </div>
+      <section className="bg-blue-600 text-white">
+        <div className="max-w-7xl mx-auto px-6 py-20">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
 
-          {/* Heading */}
-          <h1 className="text-4xl md:text-5xl font-bold leading-tight">
-            Panipat's Smart Doctor Booking Platform — Launching Soon
-          </h1>
-
-          {/* Subtext */}
-          <p className="text-lg text-blue-100 leading-relaxed">
-            Skip long queues. Book trusted doctors instantly. Be among the first to experience smarter healthcare in Panipat.
-          </p>
-
-          {/* CTA Form */}
-          <form onSubmit={handlePatientSubmit} className="flex gap-2 max-w-md mx-auto bg-white bg-opacity-10 p-1 rounded-lg">
-            <input
-              type="email"
-              placeholder="your@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={loading}
-              className="flex-1 px-4 py-3 bg-white text-gray-900 placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-white font-medium disabled:opacity-50"
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            {/* LEFT COLUMN */}
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="space-y-6"
             >
-              {loading ? "..." : "Notify Me"}
-            </button>
-          </form>
+              {/* Badge */}
+              <div className="inline-block bg-white/20 px-4 py-2 rounded-full">
+                <p className="text-sm font-semibold">Coming Soon</p>
+              </div>
 
-          {error && (
-            <p className="text-center text-red-200 text-sm font-medium max-w-md mx-auto">
-              ✗ {error}
-            </p>
-          )}
+              {/* Heading */}
+              <h1 className="text-4xl md:text-6xl font-bold text-white leading-tight">
+                Panipat's Smart Doctor Booking Platform — Launching Soon
+              </h1>
 
-          {submitted && (
-            <p className="text-blue-100 text-sm font-medium">✓ Thank you! We'll notify you soon.</p>
-          )}
+              {/* Subtext */}
+              <p className="text-blue-100 mt-4 text-lg leading-relaxed">
+                Skip long queues. Book trusted doctors instantly. Be among the first to experience smarter healthcare in Panipat.
+              </p>
 
-          {/* Helper Text */}
-          <p className="text-sm text-blue-100 tracking-wide">
-            Early access for patients & free listing for doctors
-          </p>
+              {/* Email CTA Form */}
+              <form onSubmit={handlePatientSubmit} className="flex gap-2 max-w-md bg-white/10 p-1 rounded-xl">
+                <input
+                  type="email"
+                  placeholder="your@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={loading}
+                  className="flex-1 px-4 py-3 bg-white text-gray-900 placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-white font-medium disabled:opacity-50"
+                />
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? "..." : "Notify Me"}
+                </button>
+              </form>
+
+              {error && (
+                <p className="text-red-200 text-sm font-medium">✗ {error}</p>
+              )}
+              {submitted && (
+                <p className="text-blue-100 text-sm font-medium">✓ Thank you! We'll notify you soon.</p>
+              )}
+
+              {/* Doctor CTA Section */}
+              <div>
+                <p className="text-white font-semibold mt-6">We need verified doctors for our platform.</p>
+                <p className="text-blue-100 text-sm mt-1">Contact us today for FREE listing for 1 year.</p>
+                <a
+                  href="mailto:info@docbooking.in"
+                  className="inline-block mt-3 bg-white text-blue-600 px-5 py-2 rounded-xl font-semibold hover:scale-105 transition"
+                >
+                  Join as Doctor
+                </a>
+              </div>
+            </motion.div>
+
+            {/* RIGHT COLUMN - Image */}
+            <motion.div
+              initial={{ opacity: 0, x: 60 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6 }}
+              className="flex justify-center md:justify-end"
+            >
+              <div className="bg-white/10 backdrop-blur-lg p-3 rounded-3xl">
+                <Image
+                  src="/doctor-hero.webp"
+                  alt="DocBooking — Book Doctors in Panipat"
+                  width={520}
+                  height={560}
+                  className="rounded-2xl shadow-2xl object-cover"
+                  priority
+                />
+              </div>
+            </motion.div>
+
+          </div>
         </div>
       </section>
 
@@ -298,13 +333,13 @@ export default function ComingSoonPage() {
             {/* Links */}
             <div className="flex flex-wrap justify-center gap-6 text-sm">
               <Link
-                href="/terms-and-conditions"
+                href="/terms"
                 className="text-gray-600 hover:text-gray-900 transition-colors"
               >
-                Terms & Conditions
+                Terms of Use
               </Link>
               <Link
-                href="/privacy-policy"
+                href="/privacy"
                 className="text-gray-600 hover:text-gray-900 transition-colors"
               >
                 Privacy Policy
@@ -321,12 +356,29 @@ export default function ComingSoonPage() {
               >
                 Cancellation Policy
               </Link>
+              <Link
+                href="/disclaimer"
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Disclaimer
+              </Link>
             </div>
 
             {/* Copyright */}
             <div className="text-center border-t border-gray-300 pt-8">
               <p className="text-sm text-gray-600">
                 &copy; 2026 DocBooking.in. All rights reserved.
+              </p>
+              <p className="mt-2 text-sm text-gray-600">
+                Built with Love by{" "}
+                <a
+                  href="https://risonaitech.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-blue-600 hover:text-blue-700"
+                >
+                  Rison Ai Tech
+                </a>
               </p>
             </div>
           </div>

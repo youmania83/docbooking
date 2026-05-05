@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ArrowRight, Clock, MapPin, Shield, CheckCircle2, Zap } from "lucide-react";
+import FAQSection from "@/components/FAQSection";
 
 export default function Home() {
   return (
@@ -152,10 +153,15 @@ export default function Home() {
         </div>
       </section>
 
+      {/* FAQ Section */}
+      <section className="bg-white border-t border-gray-100">
+        <FAQSection />
+      </section>
+
       {/* Footer */}
       <footer className="bg-gray-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid md:grid-cols-3 gap-8 mb-8">
+          <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="mb-4">
                 <img
@@ -184,6 +190,31 @@ export default function Home() {
               </ul>
             </div>
             <div>
+              <h4 className="font-bold text-lg mb-4">Legal</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li>
+                  <Link href="/terms" className="hover:text-white">
+                    Terms of Use
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/privacy" className="hover:text-white">
+                    Privacy Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/refund-policy" className="hover:text-white">
+                    Refund Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/disclaimer" className="hover:text-white">
+                    Disclaimer
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div>
               <h4 className="font-bold text-lg mb-4">Contact</h4>
               <p className="text-gray-400">Panipat, India</p>
               <p className="text-gray-400">demo@docbooking.in</p>
@@ -191,6 +222,17 @@ export default function Home() {
           </div>
           <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
             <p>&copy; 2026 DocBooking.in. All rights reserved.</p>
+            <p className="mt-2 text-sm">
+              Built with Love by{" "}
+              <a
+                href="https://risonaitech.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-white hover:text-gray-200"
+              >
+                Rison Ai Tech
+              </a>
+            </p>
           </div>
         </div>
       </footer>

@@ -35,9 +35,26 @@ function getSpecialtyIcon(specialty: string): React.ReactNode {
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: "Find Your Doctor | DocBooking",
-  description: "Browse our network of verified healthcare professionals in Panipat. Search and book appointments with top doctors.",
-  keywords: ["doctors", "panipat", "healthcare", "appointments", "medical"],
+  title: "Find Doctors in Panipat — Book OPD Appointments | DocBooking",
+  description:
+    "Browse verified doctors in Panipat by specialty. Book appointments with General Physicians, Dentists, Dermatologists, Gynecologists, and Orthopedic doctors. Fees from ₹100. Instant confirmation.",
+  alternates: {
+    canonical: "https://docbooking.in/doctors",
+  },
+  openGraph: {
+    title: "Find Doctors in Panipat — Book OPD Appointments | DocBooking",
+    description:
+      "Verified doctors in Panipat. Browse by specialty. Transparent fees. Instant online booking.",
+    url: "https://docbooking.in/doctors",
+    type: "website",
+  },
+  keywords: [
+    "doctors in Panipat",
+    "book doctor appointment Panipat",
+    "OPD booking Panipat",
+    "best doctors Panipat",
+    "doctor consultation fees Panipat",
+  ],
 };
 
 interface DoctorData {

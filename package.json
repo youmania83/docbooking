@@ -11,6 +11,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "marketing-agent": "node scripts/marketing-agent.js",
+    "marketing-execution-agent": "node scripts/marketing-execution-agent.js",
     "seed": "node scripts/seed.js",
     "reset-db": "node scripts/reset-and-seed.js",
     "safe-install": "npm ci"
@@ -23,6 +25,7 @@
     "clsx": "2.1.1",
     "date-fns": "4.1.0",
     "dotenv": "17.4.0",
+    "framer-motion": "^12.38.0",
     "lucide-react": "1.7.0",
     "mongoose": "9.3.3",
     "next": "16.2.2",

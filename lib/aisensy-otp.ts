@@ -44,11 +44,13 @@ export async function sendWhatsAppOTP(
     
     const payload = {
       apiKey: apiKey.trim(),  // ← .trim() removes any \n or whitespace
-      campaignName: "Docbooking",
+      campaignName: "App OTP", // AiSensy campaign backed by template "app_verification_code"
       destination: finalDestination,  // Format: 91XXXXXXXXXX (exactly 12 digits)
       userName: patientName,
       source: "DocBooking Website",
-      templateParams: [otp], // Body param only; AiSensy handles copy_code button internally
+      // Template body: "{{1}} is your verification code. For your security, do not share this code."
+      // {{1}} is the OTP itself.
+      templateParams: [otp],
       buttons: [
         {
           type: "button",
@@ -57,7 +59,7 @@ export async function sendWhatsAppOTP(
           parameters: [
             {
               type: "text",
-              text: otp
+              text: otp // Copy-code button also carries the OTP
             }
           ]
         }

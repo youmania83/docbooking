@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 
 // ── Single test doctor (seeded in DB) ──────────────────────────────────────
 const DOCTOR = {
@@ -50,6 +51,7 @@ export default function BookingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [confirmed, setConfirmed] = useState<BookingResult | null>(null);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   // Today's date in YYYY-MM-DD for min date
   const today = new Date().toISOString().split('T')[0];
@@ -215,11 +217,31 @@ export default function BookingPage() {
             </div>
             <button
               type="submit"
-              disabled={loading || phone.length !== 10 || !userName.trim()}
+              disabled={loading || phone.length !== 10 || !userName.trim() || !termsAccepted}
               className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white font-semibold py-3 rounded-lg transition"
             >
               {loading ? 'Sending OTP…' : 'Send OTP via WhatsApp →'}
             </button>
+            <label className="flex items-start gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                required
+              />
+              <span className="text-xs text-gray-500 leading-snug">
+                I agree to the{' '}
+                <Link href="/terms" className="text-indigo-600 underline" target="_blank" rel="noopener noreferrer">
+                  Terms of Use
+                </Link>{' '}
+                and{' '}
+                <Link href="/privacy" className="text-indigo-600 underline" target="_blank" rel="noopener noreferrer">
+                  Privacy Policy
+                </Link>
+                , and consent to receiving WhatsApp notifications.
+              </span>
+            </label>
           </form>
         )}
 
