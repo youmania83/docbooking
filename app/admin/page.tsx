@@ -1,8 +1,8 @@
 "use client";
 
-import { FormEvent, useState, useEffect } from "react";
+import { FormEvent, useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, CheckCircle2, Loader, LogOut, Eye } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader, LogOut, Eye, Users, CalendarDays, IndianRupee, Phone, ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
 
 interface FormData {
   name: string;
@@ -30,16 +30,26 @@ interface Booking {
     _id: string;
     name: string;
     specialty: string;
+    opdFees?: number;
   };
   slot: string;
+  appointmentDate: string;
+  appointmentTime: string;
   createdAt: string;
 }
+
+type ViewMode = "summary" | "by-doctor" | "by-day" | "all";
 
 export default function AdminPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"add-doctor" | "bookings">("add-doctor");
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [bookingsLoading, setBookingsLoading] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("summary");
+  const [expandedDoctor, setExpandedDoctor] = useState<string | null>(null);
+  const [expandedDay, setExpandedDay] = useState<string | null>(null);
+  const [filterDoctor, setFilterDoctor] = useState<string>("");
+  const [filterDate, setFilterDate] = useState<string>("");
   const [formData, setFormData] = useState<FormData>({
     name: "",
     qualification: "",
@@ -66,6 +76,62 @@ export default function AdminPage() {
       fetchBookings();
     }
   }, [activeTab]);
+
+  // ── Analytics computations ──────────────────────────────────────────────
+  const todayStr = useMemo(() => {
+    const d = new Date();
+    return d.toISOString().slice(0, 10);
+  }, []);
+
+  const filteredBookings = useMemo(() => {
+    return bookings.filter((b) => {
+      const apptDay = b.appointmentDate ? b.appointmentDate.slice(0, 10) : b.createdAt.slice(0, 10);
+      if (filterDoctor && b.doctorId._id !== filterDoctor) return false;
+      if (filterDate && apptDay !== filterDate) return false;
+      return true;
+    });
+  }, [bookings, filterDoctor, filterDate]);
+
+  const todayBookings = useMemo(
+    () => bookings.filter((b) => {
+      const apptDay = b.appointmentDate ? b.appointmentDate.slice(0, 10) : b.createdAt.slice(0, 10);
+      return apptDay === todayStr;
+    }),
+    [bookings, todayStr]
+  );
+
+  const totalRevenue = useMemo(
+    () => bookings.reduce((sum, b) => sum + (b.doctorId.opdFees || 0), 0),
+    [bookings]
+  );
+
+  const byDoctor = useMemo(() => {
+    const map: Record<string, { doctorId: string; doctorName: string; specialty: string; bookings: Booking[] }> = {};
+    filteredBookings.forEach((b) => {
+      const id = b.doctorId._id;
+      if (!map[id]) map[id] = { doctorId: id, doctorName: b.doctorId.name, specialty: b.doctorId.specialty, bookings: [] };
+      map[id].bookings.push(b);
+    });
+    return Object.values(map).sort((a, b) => b.bookings.length - a.bookings.length);
+  }, [filteredBookings]);
+
+  const byDay = useMemo(() => {
+    const map: Record<string, Booking[]> = {};
+    filteredBookings.forEach((b) => {
+      const day = b.appointmentDate ? b.appointmentDate.slice(0, 10) : b.createdAt.slice(0, 10);
+      if (!map[day]) map[day] = [];
+      map[day].push(b);
+    });
+    return Object.entries(map)
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([day, bks]) => ({ day, bookings: bks }));
+  }, [filteredBookings]);
+
+  const uniqueDoctors = useMemo(() => {
+    const seen = new Map<string, { id: string; name: string }>();
+    bookings.forEach((b) => seen.set(b.doctorId._id, { id: b.doctorId._id, name: b.doctorId.name }));
+    return Array.from(seen.values());
+  }, [bookings]);
 
   const fetchBookings = async () => {
     setBookingsLoading(true);
@@ -277,7 +343,7 @@ export default function AdminPage() {
                   : "text-gray-600 hover:bg-gray-50"
               }`}
             >
-              📋 View Bookings
+              📋 Bookings & Analytics
             </button>
           </div>
         </div>
@@ -502,52 +568,340 @@ export default function AdminPage() {
 
         {/* Bookings Tab */}
         {activeTab === "bookings" && (
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="space-y-6">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="bg-blue-100 rounded-lg p-2"><CalendarDays size={20} className="text-blue-600" /></div>
+                  <p className="text-sm text-gray-500">Today&apos;s Bookings</p>
+                </div>
+                <p className="text-3xl font-bold text-gray-900">{todayBookings.length}</p>
+              </div>
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="bg-green-100 rounded-lg p-2"><Users size={20} className="text-green-600" /></div>
+                  <p className="text-sm text-gray-500">Total Bookings</p>
+                </div>
+                <p className="text-3xl font-bold text-gray-900">{bookings.length}</p>
+              </div>
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="bg-purple-100 rounded-lg p-2"><IndianRupee size={20} className="text-purple-600" /></div>
+                  <p className="text-sm text-gray-500">Total Revenue</p>
+                </div>
+                <p className="text-3xl font-bold text-gray-900">₹{totalRevenue.toLocaleString("en-IN")}</p>
+              </div>
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="bg-orange-100 rounded-lg p-2"><Eye size={20} className="text-orange-600" /></div>
+                  <p className="text-sm text-gray-500">Doctors Active</p>
+                </div>
+                <p className="text-3xl font-bold text-gray-900">{uniqueDoctors.length}</p>
+              </div>
+            </div>
+
+            {/* Filters + View Toggle */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                {/* Filters */}
+                <div className="flex flex-wrap gap-3">
+                  <select
+                    value={filterDoctor}
+                    onChange={(e) => setFilterDoctor(e.target.value)}
+                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">All Doctors</option>
+                    {uniqueDoctors.map((d) => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="date"
+                    value={filterDate}
+                    onChange={(e) => setFilterDate(e.target.value)}
+                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {(filterDoctor || filterDate) && (
+                    <button
+                      onClick={() => { setFilterDoctor(""); setFilterDate(""); }}
+                      className="text-sm text-red-500 hover:text-red-700 font-medium"
+                    >
+                      Clear Filters
+                    </button>
+                  )}
+                </div>
+                {/* Refresh */}
+                <button
+                  onClick={fetchBookings}
+                  disabled={bookingsLoading}
+                  className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-semibold"
+                >
+                  <RefreshCw size={16} className={bookingsLoading ? "animate-spin" : ""} />
+                  Refresh
+                </button>
+              </div>
+
+              {/* View Mode Tabs */}
+              <div className="flex gap-2 mt-4 flex-wrap">
+                {(["summary", "by-doctor", "by-day", "all"] as ViewMode[]).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setViewMode(mode)}
+                    className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
+                      viewMode === mode
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    {mode === "summary" ? "📊 Summary" : mode === "by-doctor" ? "👨‍⚕️ By Doctor" : mode === "by-day" ? "📅 By Day" : "📋 All Patients"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {bookingsLoading ? (
-              <div className="flex items-center justify-center p-12">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 flex items-center justify-center p-12">
                 <Loader className="animate-spin text-blue-600 mr-2" size={24} />
                 <p className="text-gray-600">Loading bookings...</p>
               </div>
             ) : bookings.length === 0 ? (
-              <div className="text-center p-12">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 text-center p-12">
                 <Eye size={48} className="mx-auto text-gray-300 mb-4" />
                 <p className="text-gray-600 text-lg">No bookings yet</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-gray-50 border-b border-gray-200">
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Patient Name</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Doctor</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Specialty</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Time Slot</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Age/Gender</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Phone</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Booking Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {bookings.map((booking, index) => (
-                      <tr key={booking._id} className={`border-b border-gray-200 ${index % 2 === 0 ? "bg-white" : "bg-gray-50"}`}>
-                        <td className="px-6 py-4 text-sm text-gray-900 font-medium">{booking.patientName}</td>
-                        <td className="px-6 py-4 text-sm text-gray-900">{booking.doctorId.name}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{booking.doctorId.specialty}</td>
-                        <td className="px-6 py-4 text-sm text-gray-900 font-semibold">{booking.slot}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{booking.age} / {booking.gender}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">+91 {booking.phone}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">
-                          {new Date(booking.createdAt).toLocaleDateString("en-IN", {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                          })}
-                        </td>
-                      </tr>
+              <>
+                {/* ── SUMMARY VIEW ── */}
+                {viewMode === "summary" && (
+                  <div className="space-y-4">
+                    <h2 className="text-lg font-bold text-gray-800">Today&apos;s Appointments ({todayStr})</h2>
+                    {todayBookings.length === 0 ? (
+                      <div className="bg-white rounded-xl border border-gray-200 p-6 text-center text-gray-500">No appointments today</div>
+                    ) : (
+                      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                        <table className="w-full text-sm">
+                          <thead className="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                              <th className="px-4 py-3 text-left font-semibold text-gray-700">Patient</th>
+                              <th className="px-4 py-3 text-left font-semibold text-gray-700">Phone</th>
+                              <th className="px-4 py-3 text-left font-semibold text-gray-700">Doctor</th>
+                              <th className="px-4 py-3 text-left font-semibold text-gray-700">Time</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {todayBookings.map((b, i) => (
+                              <tr key={b._id} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                                <td className="px-4 py-3 font-medium text-gray-900">{b.patientName} <span className="text-gray-400 font-normal">({b.age}/{b.gender.charAt(0)})</span></td>
+                                <td className="px-4 py-3">
+                                  <a href={`tel:${b.phone}`} className="flex items-center gap-1 text-blue-600 hover:underline font-medium">
+                                    <Phone size={14} /> {b.phone}
+                                  </a>
+                                </td>
+                                <td className="px-4 py-3 text-gray-700">{b.doctorId.name}</td>
+                                <td className="px-4 py-3 font-semibold text-blue-600">{b.appointmentTime || b.slot}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    <h2 className="text-lg font-bold text-gray-800 pt-2">Doctor-wise Total</h2>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      {byDoctor.map((d) => (
+                        <div key={d.doctorId} className="bg-white rounded-xl border border-gray-200 p-5 flex items-center justify-between">
+                          <div>
+                            <p className="font-bold text-gray-900">{d.doctorName}</p>
+                            <p className="text-sm text-gray-500">{d.specialty}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-3xl font-bold text-blue-600">{d.bookings.length}</p>
+                            <p className="text-xs text-gray-400">bookings</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── BY DOCTOR VIEW ── */}
+                {viewMode === "by-doctor" && (
+                  <div className="space-y-4">
+                    {byDoctor.length === 0 ? (
+                      <div className="bg-white rounded-xl border border-gray-200 p-6 text-center text-gray-500">No bookings match filters</div>
+                    ) : byDoctor.map((d) => (
+                      <div key={d.doctorId} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                        <button
+                          onClick={() => setExpandedDoctor(expandedDoctor === d.doctorId ? null : d.doctorId)}
+                          className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center font-bold text-blue-600">
+                              {d.doctorName.charAt(0)}
+                            </div>
+                            <div className="text-left">
+                              <p className="font-bold text-gray-900">{d.doctorName}</p>
+                              <p className="text-sm text-gray-500">{d.specialty}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <span className="bg-blue-100 text-blue-700 font-bold text-lg px-4 py-1 rounded-full">{d.bookings.length} bookings</span>
+                            {expandedDoctor === d.doctorId ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                          </div>
+                        </button>
+                        {expandedDoctor === d.doctorId && (
+                          <div className="border-t border-gray-200 overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead className="bg-gray-50">
+                                <tr>
+                                  <th className="px-4 py-2 text-left font-semibold text-gray-600">#</th>
+                                  <th className="px-4 py-2 text-left font-semibold text-gray-600">Patient</th>
+                                  <th className="px-4 py-2 text-left font-semibold text-gray-600">Phone</th>
+                                  <th className="px-4 py-2 text-left font-semibold text-gray-600">Age/Gender</th>
+                                  <th className="px-4 py-2 text-left font-semibold text-gray-600">Appt. Date</th>
+                                  <th className="px-4 py-2 text-left font-semibold text-gray-600">Time</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {d.bookings.map((b, i) => (
+                                  <tr key={b._id} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                                    <td className="px-4 py-3 text-gray-400">{i + 1}</td>
+                                    <td className="px-4 py-3 font-medium text-gray-900">{b.patientName}</td>
+                                    <td className="px-4 py-3">
+                                      <a href={`tel:${b.phone}`} className="flex items-center gap-1 text-blue-600 hover:underline font-medium">
+                                        <Phone size={13} /> {b.phone}
+                                      </a>
+                                    </td>
+                                    <td className="px-4 py-3 text-gray-600">{b.age} / {b.gender}</td>
+                                    <td className="px-4 py-3 text-gray-700">
+                                      {b.appointmentDate
+                                        ? new Date(b.appointmentDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+                                        : "—"}
+                                    </td>
+                                    <td className="px-4 py-3 font-semibold text-blue-600">{b.appointmentTime || b.slot}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
                     ))}
-                  </tbody>
-                </table>
-              </div>
+                  </div>
+                )}
+
+                {/* ── BY DAY VIEW ── */}
+                {viewMode === "by-day" && (
+                  <div className="space-y-4">
+                    {byDay.length === 0 ? (
+                      <div className="bg-white rounded-xl border border-gray-200 p-6 text-center text-gray-500">No bookings match filters</div>
+                    ) : byDay.map(({ day, bookings: dayBookings }) => (
+                      <div key={day} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                        <button
+                          onClick={() => setExpandedDay(expandedDay === day ? null : day)}
+                          className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="bg-green-100 rounded-lg p-2"><CalendarDays size={20} className="text-green-600" /></div>
+                            <div className="text-left">
+                              <p className="font-bold text-gray-900">
+                                {new Date(day + "T00:00:00").toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+                              </p>
+                              {day === todayStr && <span className="text-xs bg-green-100 text-green-700 font-semibold px-2 py-0.5 rounded-full">Today</span>}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <span className="bg-green-100 text-green-700 font-bold text-lg px-4 py-1 rounded-full">{dayBookings.length} patients</span>
+                            {expandedDay === day ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                          </div>
+                        </button>
+                        {expandedDay === day && (
+                          <div className="border-t border-gray-200 overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead className="bg-gray-50">
+                                <tr>
+                                  <th className="px-4 py-2 text-left font-semibold text-gray-600">#</th>
+                                  <th className="px-4 py-2 text-left font-semibold text-gray-600">Patient</th>
+                                  <th className="px-4 py-2 text-left font-semibold text-gray-600">Phone</th>
+                                  <th className="px-4 py-2 text-left font-semibold text-gray-600">Age/Gender</th>
+                                  <th className="px-4 py-2 text-left font-semibold text-gray-600">Doctor</th>
+                                  <th className="px-4 py-2 text-left font-semibold text-gray-600">Time</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {dayBookings
+                                  .sort((a, b) => (a.appointmentTime || a.slot || "").localeCompare(b.appointmentTime || b.slot || ""))
+                                  .map((b, i) => (
+                                  <tr key={b._id} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                                    <td className="px-4 py-3 text-gray-400">{i + 1}</td>
+                                    <td className="px-4 py-3 font-medium text-gray-900">{b.patientName}</td>
+                                    <td className="px-4 py-3">
+                                      <a href={`tel:${b.phone}`} className="flex items-center gap-1 text-blue-600 hover:underline font-medium">
+                                        <Phone size={13} /> {b.phone}
+                                      </a>
+                                    </td>
+                                    <td className="px-4 py-3 text-gray-600">{b.age} / {b.gender}</td>
+                                    <td className="px-4 py-3 text-gray-700">{b.doctorId.name}</td>
+                                    <td className="px-4 py-3 font-semibold text-blue-600">{b.appointmentTime || b.slot}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* ── ALL PATIENTS VIEW ── */}
+                {viewMode === "all" && (
+                  <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                      <p className="font-semibold text-gray-700">Showing {filteredBookings.length} of {bookings.length} bookings</p>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50 border-b border-gray-200">
+                          <tr>
+                            <th className="px-4 py-3 text-left font-semibold text-gray-700">Patient</th>
+                            <th className="px-4 py-3 text-left font-semibold text-gray-700">Phone</th>
+                            <th className="px-4 py-3 text-left font-semibold text-gray-700">Age/Gender</th>
+                            <th className="px-4 py-3 text-left font-semibold text-gray-700">Doctor</th>
+                            <th className="px-4 py-3 text-left font-semibold text-gray-700">Appt. Date</th>
+                            <th className="px-4 py-3 text-left font-semibold text-gray-700">Time</th>
+                            <th className="px-4 py-3 text-left font-semibold text-gray-700">Booked On</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredBookings.map((b, i) => (
+                            <tr key={b._id} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                              <td className="px-4 py-3 font-medium text-gray-900">{b.patientName}</td>
+                              <td className="px-4 py-3">
+                                <a href={`tel:${b.phone}`} className="flex items-center gap-1 text-blue-600 hover:underline font-medium">
+                                  <Phone size={13} /> {b.phone}
+                                </a>
+                              </td>
+                              <td className="px-4 py-3 text-gray-600">{b.age} / {b.gender}</td>
+                              <td className="px-4 py-3 text-gray-700">{b.doctorId.name}</td>
+                              <td className="px-4 py-3 text-gray-700">
+                                {b.appointmentDate
+                                  ? new Date(b.appointmentDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+                                  : "—"}
+                              </td>
+                              <td className="px-4 py-3 font-semibold text-blue-600">{b.appointmentTime || b.slot}</td>
+                              <td className="px-4 py-3 text-gray-500">
+                                {new Date(b.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
