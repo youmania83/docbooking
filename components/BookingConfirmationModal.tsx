@@ -50,10 +50,11 @@ export default function BookingConfirmationModal({
   const [bookingConfirmed, setBookingConfirmed] = useState(!!existingBookingId);
 
   useEffect(() => {
-    if (isOpen && !bookingConfirmed && !loading && !bookingId) {
+    if (isOpen && !bookingConfirmed && !bookingId) {
       createBooking();
     }
-  }, [isOpen, bookingConfirmed, loading, bookingId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const createBooking = async () => {
     if (bookingConfirmed || bookingId) return;
