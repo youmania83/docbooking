@@ -76,6 +76,7 @@ export default function BookingConfirmationModal({
           appointmentDate: appointmentDate || new Date(),
           appointmentTime: slot,
           slot: slot, // Legacy support
+          termsAccepted: true, // Terms accepted during OTP verification step
         }),
       });
 

@@ -80,10 +80,10 @@ export async function createBooking(bookingData: {
       throw new ValidationError("Invalid appointment date.");
     }
 
-    // Validate appointment time format (HH:MM AM/PM)
-    const timeRegex = /^(0[0-9]|1[0-2]):[0-5][0-9]\s(AM|PM)$/i;
-    if (!timeRegex.test(bookingData.appointmentTime)) {
-      throw new ValidationError("Appointment time must be in HH:MM AM/PM format.");
+    // Validate appointment time format (H:MM AM/PM or HH:MM AM/PM)
+    const timeRegex = /^\d{1,2}:[0-5]\d\s(AM|PM)$/i;
+    if (!timeRegex.test(bookingData.appointmentTime.trim())) {
+      throw new ValidationError("Appointment time must be in H:MM AM/PM format (e.g. 9:00 AM).");
     }
 
     // Validate email if provided
