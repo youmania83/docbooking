@@ -10,10 +10,13 @@ import {
   Scissors,
   UserRound,
   Syringe,
+  Shield,
+  CheckCircle2,
 } from "lucide-react";
 import { Metadata } from "next";
 import { connectDB } from "@/lib/mongodb";
 import Doctor from "@/models/Doctor";
+import { doctors as staticDoctors } from "@/data/doctors";
 
 // Specialty to icon mapping
 const specialtyIconMap: Record<string, React.ReactNode> = {
@@ -89,9 +92,7 @@ export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
     await connectDB();
 
     // Fetch all doctors from database using lean() for better performance
-    const allDoctors = await Doctor.find()
-      .lean()
-      .exec();
+    const allDoctors = await Doctor.find().lean().exec();
 
     // Convert MongoDB documents to our interface
     doctors = allDoctors.map((doc: any) => ({
@@ -130,18 +131,46 @@ export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
     error = errorMessage;
   }
 
+  // When DB has no doctors, show static sample doctors as demo cards
+  const showStaticFallback = !error && doctors.length === 0;
+
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Find Your Doctor
-          </h1>
-          <p className="text-lg text-gray-600">
-            Browse our network of verified healthcare professionals in Panipat
-          </p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Premium Page Header */}
+      <div className="bg-gradient-to-br from-blue-600 to-blue-700 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div>
+              <div className="inline-flex items-center gap-2 bg-white/15 rounded-full px-3 py-1 text-sm font-medium mb-3">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                Verified Doctors in Panipat
+              </div>
+              <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+                Find Your Doctor
+              </h1>
+              <p className="text-blue-100 text-base md:text-lg">
+                Browse verified healthcare professionals in Panipat
+              </p>
+            </div>
+            <div className="flex gap-6 md:gap-8">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-white">{doctors.length || staticDoctors.length}+</p>
+                <p className="text-blue-100 text-xs mt-0.5">Doctors</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-white">100%</p>
+                <p className="text-blue-100 text-xs mt-0.5">Verified</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-white">₹100+</p>
+                <p className="text-blue-100 text-xs mt-0.5">From</p>
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {/* Error State */}
         {error && (
@@ -204,21 +233,36 @@ export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
           )}
         </div>
 
-        {/* Empty State - No Doctors */}
-        {!error && doctors.length === 0 && (
-          <div className="text-center py-12 bg-blue-50 border border-blue-200 rounded-lg">
-            <AlertCircle className="text-blue-600 mx-auto mb-3" size={40} />
-            <h3 className="text-lg font-semibold text-blue-900 mb-2">No Doctors Available</h3>
-            <p className="text-blue-700 mb-4">
-              There are currently no doctors in the system.
-            </p>
-            <a
-              href="/admin"
-              className="inline-block text-blue-600 hover:text-blue-700 font-medium underline"
-            >
-              Add doctors from admin panel →
-            </a>
-          </div>
+        {/* Static Fallback — shown when DB has no doctors yet */}
+        {showStaticFallback && (
+          <>
+            <div className="flex items-center gap-2 mb-6">
+              <CheckCircle2 size={18} className="text-blue-600" />
+              <p className="text-sm font-medium text-gray-600">
+                Showing {staticDoctors.length} featured doctor{staticDoctors.length !== 1 ? "s" : ""}
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {staticDoctors.map((doc) => (
+                <DoctorCard
+                  key={doc.slug}
+                  doctor={{
+                    _id: doc.slug,
+                    name: doc.name,
+                    specialty: doc.specialty,
+                    opdFees: doc.opdFees,
+                    slots: [],
+                    qualification: doc.qualification,
+                    experience: doc.experience,
+                    address: doc.clinicAddress,
+                    phone: doc.phone,
+                    googleLocation: doc.googleLocation || "",
+                    slug: doc.slug,
+                  }}
+                />
+              ))}
+            </div>
+          </>
         )}
 
         {/* Doctor Grid */}
@@ -255,6 +299,26 @@ export default async function DoctorsPage({ searchParams }: DoctorsPageProps) {
             )}
           </>
         )}
+      </div>
+
+      {/* Trust Banner */}
+      <div className="border-t border-gray-200 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-12 text-sm text-gray-500">
+            <div className="flex items-center gap-2">
+              <Shield size={16} className="text-blue-600" />
+              <span>All doctors verified by DocBooking</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 size={16} className="text-blue-600" />
+              <span>Transparent consultation fees</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Heart size={16} className="text-blue-600" />
+              <span>Patient-first approach</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

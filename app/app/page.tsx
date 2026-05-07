@@ -5,7 +5,7 @@ import { useState, useEffect, Suspense } from "react";
 import { Lock, AlertCircle } from "lucide-react";
 
 // Import the actual main homepage
-import MainHome from "../(main)/page";
+import MainHome from "../page";
 
 const APP_ACCESS_PASSWORD = "docbooking2026"; // Simple protection
 

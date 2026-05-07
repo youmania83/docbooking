@@ -3,6 +3,7 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IDoctor extends Document {
   uid: string;
+  slug: string;
   name: string;
   clinicName: string;
   qualification: string;
@@ -13,6 +14,13 @@ export interface IDoctor extends Document {
   opdFees: number;
   specialty: string;
   slots: string[];
+  about: string;
+  timings: { day: string; hours: string }[];
+  services: string[];
+  isAvailable: boolean;
+  patientsSeen: number;
+  rating: number;
+  image: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -74,6 +82,44 @@ const DoctorSchema = new Schema<IDoctor>(
     slots: {
       type: [String],
       default: [],
+    },
+    about: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    timings: {
+      type: [{ day: String, hours: String }],
+      default: [],
+    },
+    services: {
+      type: [String],
+      default: [],
+    },
+    isAvailable: {
+      type: Boolean,
+      default: true,
+    },
+    patientsSeen: {
+      type: Number,
+      default: 0,
+    },
+    rating: {
+      type: Number,
+      default: 5.0,
+      min: 0,
+      max: 5,
+    },
+    image: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    slug: {
+      type: String,
+      trim: true,
+      sparse: true,
+      index: true,
     },
   },
   {

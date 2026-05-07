@@ -62,12 +62,27 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Create doctor via service
+    // Create doctor via service — pass all fields from body
     const result = await createDoctor({
       name: body.name,
       specialty: body.specialty,
-      fee: body.fee || body.opdFees,
+      qualification: body.qualification,
+      experience: body.experience,
+      clinicName: body.clinicName,
+      address: body.address,
+      googleLocation: body.googleLocation,
+      phone: body.phone,
+      opdFees: body.opdFees ?? body.fee,
       slots: body.slots || [],
+      about: body.about,
+      timings: body.timings || [],
+      services: body.services || [],
+      isAvailable: body.isAvailable ?? true,
+      patientsSeen: body.patientsSeen ?? 0,
+      rating: body.rating ?? 5.0,
+      image: body.image,
+      city: body.city,
+      slug: body.slug,
     });
 
     console.log(`[API] ✅ Doctor created: ${result._id}`);
